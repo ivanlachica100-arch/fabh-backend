@@ -7,6 +7,7 @@ const {
   getMyListings,
   updateListing,
   deleteListing,
+  compareListings,
 } = require('../controllers/boardingHouseController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -18,5 +19,5 @@ router.get('/my-listings', protect, authorize('landlord', 'admin'), getMyListing
 
 router.put('/:id', protect, authorize('landlord', 'admin'), updateListing);
 router.delete('/:id', protect, authorize('landlord', 'admin'), deleteListing);
-
+router.post('/compare', compareListings);
 module.exports = router;

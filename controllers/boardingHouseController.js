@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const BoardingHouse = require('../models/BoardingHouse');
 const DAGUPAN_CAMPUSES = require('../config/landmarks');
+const { calculateTOPSIS } = require('../utils/topsis');
 
 // @desc    Create a new Boarding House listing
 // @route   POST /api/boarding-houses
@@ -171,9 +173,8 @@ const deleteListing = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-const { calculateTOPSIS } = require('../utils/topsis');
 
-// @desc    Compare multiple boarding houses using TOPSIS quantitative decision engine
+// @desc    Compare multiple boarding houses using TOPSIS
 // @route   POST /api/boarding-houses/compare
 // @access  Public
 const compareListings = async (req, res) => {
@@ -195,8 +196,6 @@ const compareListings = async (req, res) => {
       });
     }
 
-    // Use $geoNear to automatically compute the distance of each selected house to the campus
-    const mongoose = require('mongoose');
     const objectIds = houseIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const pipeline = [
@@ -226,7 +225,6 @@ const compareListings = async (req, res) => {
       });
     }
 
-    // Run the TOPSIS mathematical algorithm
     const rankedResults = calculateTOPSIS(houses, weights);
 
     res.status(200).json({
@@ -247,4 +245,5 @@ module.exports = {
   getMyListings,
   updateListing,
   deleteListing,
+  compareListings,
 };
