@@ -49,5 +49,10 @@ mongoose
   .then(() => console.log('MongoDB Connected'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
+  // Mount routers
+app.use('/api/auth', authRoutes);
+app.use('/api/boarding-houses', boardingHouseRoutes);
+app.use('/api/boarding-houses/:boardingHouseId/reviews', require('./routes/reviews'));
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
