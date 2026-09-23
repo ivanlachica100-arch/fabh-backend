@@ -23,14 +23,12 @@ const boardingHouseSchema = new mongoose.Schema(
       barangay: { type: String, required: true },
       city: { type: String, default: 'Dagupan City' },
     },
-    // GeoJSON Point format for MongoDB 2dsphere indexing
     location: {
       type: {
         type: String,
         enum: ['Point'],
         default: 'Point',
       },
-      // Note: MongoDB requires coordinates in [longitude, latitude] order
       coordinates: {
         type: [Number],
         required: true,
@@ -61,9 +59,18 @@ const boardingHouseSchema = new mongoose.Schema(
       enum: ['male', 'female', 'any'],
       default: 'any',
     },
+    contactChannels: {
+      phoneNumber: { type: String, default: '09171234567' },
+      facebookUrl: { type: String, default: 'https://facebook.com' },
+      telegramUsername: { type: String, default: '' },
+      whatsappNumber: { type: String, default: '' },
+    },
     images: {
       type: [String],
-      default: ['default-boarding-house.jpg'],
+      default: [
+        'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80',
+      ],
     },
     isVerifiedByAdmin: {
       type: Boolean,
@@ -79,7 +86,6 @@ const boardingHouseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Create 2dsphere index for high-speed spatial proximity queries
 boardingHouseSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('BoardingHouse', boardingHouseSchema);

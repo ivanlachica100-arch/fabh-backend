@@ -11,9 +11,16 @@ const {
 } = require('../controllers/boardingHouseController');
 
 const { protect, authorize } = require('../middleware/auth');
+const upload = require('../utils/upload');
 
 router.get('/', getListings);
-router.post('/', protect, authorize('landlord', 'admin'), createListing);
+router.post(
+  '/',
+  protect,
+  authorize('landlord', 'admin'),
+  upload.array('images', 5),
+  createListing
+);
 
 router.post('/compare', compareListings);
 router.get('/my-listings', protect, authorize('landlord', 'admin'), getMyListings);

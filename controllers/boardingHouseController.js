@@ -3,24 +3,92 @@ const BoardingHouse = require('../models/BoardingHouse');
 const DAGUPAN_CAMPUSES = require('../config/landmarks');
 const { calculateTOPSIS } = require('../utils/topsis');
 
-// @desc    Create a new Boarding House listing
+// @desc    Create a new Boarding House listing with image upload support
 // @route   POST /api/boarding-houses
 // @access  Private (Landlord / Admin only)
 const createListing = async (req, res) => {
   try {
     req.body.landlord = req.user._id;
 
-    const { lng, lat, ...otherData } = req.body;
+    let uploadedImages = [];
+    if (req.files && req.files.length > 0) {
+      uploadedImages = req.files.map((file) => `/uploads/${file.filename}`);
+    }
 
-    if (!lng || !lat) {
+    let lng = req.body.lng ?? req.body.location?.coordinates?.[0];
+    let lat = req.body.lat ?? req.body.location?.coordinates?.[1];
+
+    if (lng === undefined || lat === undefined || lng === null || lat === null) {
       return res.status(400).json({
         success: false,
         message: 'Please provide longitude and latitude coordinates',
       });
     }
 
+    let address = req.body.address;
+    if (typeof address === 'string') {
+      try {
+        address = JSON.parse(address);
+      } catch {
+        address = {
+          street: req.body.street || '',
+          barangay: req.body.barangay || 'Poblacion Oeste',
+          city: 'Dagupan City',
+        };
+      }
+    } else if (!address) {
+      address = {
+        street: req.body.street || '',
+        barangay: req.body.barangay || 'Poblacion Oeste',
+        city: 'Dagupan City',
+      };
+    }
+
+    let amenities = req.body.amenities;
+    if (typeof amenities === 'string') {
+      try {
+        amenities = JSON.parse(amenities);
+      } catch {
+        amenities = {};
+      }
+    } else if (!amenities) {
+      amenities = {
+        wifi: req.body.wifi === 'true' || req.body.wifi === true,
+        aircon: req.body.aircon === 'true' || req.body.aircon === true,
+        privateBathroom: req.body.privateBathroom === 'true' || req.body.privateBathroom === true,
+        kitchenAllowed: req.body.kitchenAllowed === 'true' || req.body.kitchenAllowed === true,
+        cctvSecurity: req.body.cctvSecurity === 'true' || req.body.cctvSecurity === true,
+      };
+    }
+
+    let contactChannels = req.body.contactChannels;
+    if (typeof contactChannels === 'string') {
+      try {
+        contactChannels = JSON.parse(contactChannels);
+      } catch {
+        contactChannels = {};
+      }
+    } else if (!contactChannels) {
+      contactChannels = {
+        phoneNumber: req.body.phoneNumber || '',
+        facebookUrl: req.body.facebookUrl || '',
+        telegramUsername: req.body.telegramUsername || '',
+        whatsappNumber: req.body.whatsappNumber || '',
+      };
+    }
+
     const listingData = {
-      ...otherData,
+      title: req.body.title,
+      description: req.body.description,
+      monthlyRent: Number(req.body.monthlyRent),
+      roomsAvailable: Number(req.body.roomsAvailable || 1),
+      genderPreference: req.body.genderPreference || 'any',
+      isAvailable: req.body.isAvailable !== 'false' && req.body.isAvailable !== false,
+      landlord: req.user._id,
+      address,
+      amenities,
+      contactChannels,
+      images: uploadedImages,
       location: {
         type: 'Point',
         coordinates: [parseFloat(lng), parseFloat(lat)],
@@ -179,7 +247,7 @@ const deleteListing = async (req, res) => {
 // @access  Public
 const compareListings = async (req, res) => {
   try {
-    const { houseIds, campus = 'UPANG', weights } = req.body;
+    const { houseIds, campus = 'UPANG', weights, maxBudget } = req.body;
 
     if (!houseIds || !Array.isArray(houseIds) || houseIds.length < 2) {
       return res.status(400).json({
@@ -225,7 +293,21 @@ const compareListings = async (req, res) => {
       });
     }
 
-    const rankedResults = calculateTOPSIS(houses, weights);
+    let weightArray = [0.3, 0.3, 0.2, 0.2];
+    if (weights) {
+      if (Array.isArray(weights)) {
+        weightArray = weights;
+      } else if (typeof weights === 'object') {
+        weightArray = [
+          weights.price ?? 0.25,
+          weights.distance ?? 0.25,
+          weights.rating ?? 0.25,
+          weights.amenities ?? 0.25,
+        ];
+      }
+    }
+
+    const rankedResults = calculateTOPSIS(houses, weightArray, maxBudget);
 
     res.status(200).json({
       success: true,
