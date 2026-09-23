@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
-const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const path = require('path');
@@ -11,35 +10,39 @@ dotenv.config();
 
 const app = express();
 
-// 1. Precise CORS Configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'https://fabh-backend.vercel.app',
-  process.env.CLIENT_URL,
-].filter(Boolean);
+// 1. Native Bulletproof CORS & Preflight Handler
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'https://fabh-backend.vercel.app',
+  ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const isAllowed =
-      allowedOrigins.includes(origin) ||
-      origin.endsWith('.vercel.app');
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || (origin && origin.endsWith('.vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
 
-    if (isAllowed) {
-      return callback(null, true);
-    }
-    return callback(new Error('Blocked by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+  );
 
-// Apply CORS to all routes and handle preflight requests immediately
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+  // Return immediately for preflight OPTIONS checks
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+});
 
 // 2. Body Parser & Cookie Parser
 app.use(express.json());
@@ -52,10 +55,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// 4. Rate Limiting (Skip preflight OPTIONS checks)
+// 4. Rate Limiting (Skip preflight checks)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 300,
   skip: (req) => req.method === 'OPTIONS',
 });
 app.use('/api', limiter);
@@ -63,7 +66,12 @@ app.use('/api', limiter);
 // 5. Static Uploads Folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 6. Route Handlers
+// 6. Health Check Route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
+// 7. Route Handlers
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const adminRoutes = require('./routes/admin');
@@ -76,12 +84,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/boarding-houses', boardingHouseRoutes);
 app.use('/api/boarding-houses/:boardingHouseId/reviews', reviewRoutes);
 
-// Health check endpoint to verify backend status easily
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
-});
-
-// 7. Database Connection
+// 8. Database Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected'))
