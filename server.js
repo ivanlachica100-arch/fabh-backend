@@ -29,19 +29,27 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // CORS Config
-// CORS Config - Allow Vite client ports
+// CORS Config - Supports Localhost, Vercel Production, and Previews
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000',
+  'https://fabh-backend.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl requests)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Allow exact matches in allowedOrigins OR any vercel.app preview domain
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app');
+
+      if (isAllowed) {
         return callback(null, true);
       }
       return callback(new Error('Blocked by CORS'));
@@ -49,7 +57,6 @@ app.use(
     credentials: true,
   })
 );
-
 // Route Handlers
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
