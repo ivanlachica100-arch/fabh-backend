@@ -3,10 +3,15 @@ const nodemailer = require('nodemailer');
 const createTransporter = () => {
   if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     return nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // TLS via STARTTLS
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // 16-character Google App Password
+        pass: process.env.EMAIL_PASS.replace(/\s+/g, ''), // Strips accidental spaces
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }
