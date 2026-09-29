@@ -40,8 +40,8 @@ export default function Explore({ initialCampusId }) {
   const [selectedListing, setSelectedListing] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Mobile Viewport Tab: 'list' | 'map'
-  const [mobileTab, setMobileTab] = useState('list');
+  // Default directly to 'map' so clicking "Launch Interactive Map" renders instantly on mobile
+  const [mobileTab, setMobileTab] = useState('map');
 
   // TOPSIS Compare Drawer State
   const [compareList, setCompareList] = useState([]);
@@ -155,42 +155,42 @@ export default function Explore({ initialCampusId }) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative transition-colors duration-200">
+    <div className="flex flex-col md:flex-row w-full h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
       {/* Mobile Floating View Switcher (< md screens only) */}
-      <div className="md:hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-[998] flex items-center bg-slate-900/95 dark:bg-slate-900/95 text-white rounded-full p-1.5 shadow-2xl backdrop-blur-md border border-slate-700/50">
-        <button
-          type="button"
-          onClick={() => setMobileTab('list')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-            mobileTab === 'list' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:text-white'
-          }`}
-        >
-          <ListFilter className="w-3.5 h-3.5" />
-          List & Filters
-        </button>
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center bg-slate-900 text-white rounded-full p-1.5 shadow-2xl border border-slate-700">
         <button
           type="button"
           onClick={() => setMobileTab('map')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-            mobileTab === 'map' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:text-white'
+          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer ${
+            mobileTab === 'map' ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:text-white'
           }`}
         >
           <Map className="w-3.5 h-3.5" />
           Map View
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('list')}
+          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer ${
+            mobileTab === 'list' ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          <ListFilter className="w-3.5 h-3.5" />
+          List & Filters
+        </button>
       </div>
 
       {/* Left Sidebar: Discovery & Filtering Panel */}
       <div
-        className={`w-full md:w-1/3 md:min-w-[380px] md:max-w-[430px] h-full flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 z-10 shadow-sm transition-colors duration-200 ${
+        className={`w-full md:w-1/3 md:min-w-[380px] md:max-w-[430px] h-full flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 z-10 shadow-sm transition-colors duration-200 ${
           mobileTab === 'list' ? 'flex' : 'hidden md:flex'
         }`}
       >
         {/* Header & Controls Section */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 transition-colors duration-200">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-xs shadow-xs">
+              <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-xs">
                 F
               </div>
               <div>
@@ -202,28 +202,26 @@ export default function Explore({ initialCampusId }) {
             </div>
 
             <div className="flex items-center gap-1.5">
-              {/* Saved Bookmarks Button */}
               {user && (
                 <button
                   type="button"
                   onClick={() => setIsBookmarksOpen(true)}
                   className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${
                     bookmarkedIds.length > 0
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                   }`}
                   title="View Saved Boarding Houses"
                 >
                   <Bookmark
                     className={`w-3.5 h-3.5 ${
-                      bookmarkedIds.length > 0 ? 'text-emerald-600 dark:text-emerald-400 fill-emerald-600 dark:fill-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                      bookmarkedIds.length > 0 ? 'text-emerald-600 dark:text-emerald-400 fill-emerald-600' : 'text-slate-400'
                     }`}
                   />
                   <span>{bookmarkedIds.length}</span>
                 </button>
               )}
 
-              {/* Compare with AI Button */}
               <button
                 type="button"
                 onClick={() => setIsCompareOpen(true)}
@@ -245,22 +243,20 @@ export default function Explore({ initialCampusId }) {
             <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
               Target Campus Anchor
             </label>
-            <div className="relative">
-              <select
-                className="w-full text-xs font-semibold border border-slate-300 dark:border-slate-700 rounded-lg py-2 px-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-800 transition cursor-pointer appearance-none"
-                value={selectedCampus.id}
-                onChange={(e) => {
-                  const found = DAGUPAN_CAMPUSES.find((c) => c.id === e.target.value);
-                  if (found) setSelectedCampus(found);
-                }}
-              >
-                {DAGUPAN_CAMPUSES.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              className="w-full text-xs font-semibold border border-slate-300 dark:border-slate-700 rounded-lg py-2 px-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              value={selectedCampus.id}
+              onChange={(e) => {
+                const found = DAGUPAN_CAMPUSES.find((c) => c.id === e.target.value);
+                if (found) setSelectedCampus(found);
+              }}
+            >
+              {DAGUPAN_CAMPUSES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Sliders Grid */}
@@ -304,19 +300,19 @@ export default function Explore({ initialCampusId }) {
         </div>
 
         {/* Listing Cards Feed */}
-        <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 pb-24 md:pb-4 bg-slate-100/50 dark:bg-slate-950/50 transition-colors duration-200">
+        <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 pb-28 md:pb-4 bg-slate-100/50 dark:bg-slate-950/50">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500 gap-2">
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
               <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
               <p className="text-xs font-medium">Scanning Dagupan listings...</p>
             </div>
           ) : listings.length === 0 ? (
             <div className="text-center py-12 px-4">
-              <div className="w-10 h-10 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center mx-auto mb-2">
+              <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 flex items-center justify-center mx-auto mb-2">
                 <Building className="w-5 h-5" />
               </div>
               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No boarding houses found</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Try expanding your maximum walking radius or rent budget.</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Try expanding your walking radius or budget.</p>
             </div>
           ) : (
             listings.map((house) => {
@@ -336,26 +332,23 @@ export default function Explore({ initialCampusId }) {
                   key={house._id}
                   onClick={() => {
                     setSelectedListing(house);
-                    if (window.innerWidth < 768) setMobileTab('map');
+                    setMobileTab('map');
                   }}
                   className={`p-3 rounded-xl border transition-all cursor-pointer bg-white dark:bg-slate-900 ${
                     selectedListing?._id === house._id
                       ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-                      : 'border-slate-200/90 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300 shadow-2xs'
                   }`}
                 >
-                  {/* Card Top Row */}
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex items-start gap-2 flex-1 min-w-0">
-                      {/* Compare Toggle Pill */}
                       <button
                         type="button"
                         onClick={(e) => toggleCompare(house, e)}
-                        title={isCompared ? 'Remove from compare' : 'Add to TOPSIS compare'}
                         className={`mt-0.5 w-4.5 h-4.5 rounded flex items-center justify-center transition border shrink-0 cursor-pointer ${
                           isCompared
                             ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500 bg-white dark:bg-slate-800'
+                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'
                         }`}
                       >
                         {isCompared && <Check className="w-3 h-3 stroke-[3]" />}
@@ -366,7 +359,7 @@ export default function Explore({ initialCampusId }) {
                           {displayTitle}
                         </h3>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 truncate">
-                          <Navigation className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
+                          <Navigation className="w-3 h-3 text-slate-400 shrink-0" />
                           <span className="truncate">
                             {distanceMeters !== undefined
                               ? `${Math.round(distanceMeters)}m from ${selectedCampus.name.split(' ')[0]}`
@@ -376,7 +369,6 @@ export default function Explore({ initialCampusId }) {
                       </div>
                     </div>
 
-                    {/* Price and Bookmark Action */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800">
                         ₱{house.monthlyRent?.toLocaleString()}/mo
@@ -386,16 +378,11 @@ export default function Explore({ initialCampusId }) {
                         <button
                           type="button"
                           onClick={(e) => handleToggleBookmark(house, e)}
-                          className={`p-1 rounded-md transition cursor-pointer ${
-                            isBookmarked
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
-                              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                          }`}
-                          title={isBookmarked ? 'Remove saved dorm' : 'Save to bookmarks'}
+                          className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition cursor-pointer"
                         >
                           <Bookmark
                             className={`w-3.5 h-3.5 ${
-                              isBookmarked ? 'fill-emerald-600 dark:fill-emerald-400 text-emerald-600 dark:text-emerald-400' : ''
+                              isBookmarked ? 'fill-emerald-600 text-emerald-600' : ''
                             }`}
                           />
                         </button>
@@ -403,25 +390,19 @@ export default function Explore({ initialCampusId }) {
                     </div>
                   </div>
 
-                  {/* Card Bottom Row */}
                   <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-1 text-[11px] text-slate-700 dark:text-slate-300">
                       <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
                       <span className="font-bold">
                         {currentRating ? Number(currentRating).toFixed(1) : 'New'}
                       </span>
-                      {house.numReviews !== undefined && (
-                        <span className="text-slate-400 dark:text-slate-500 text-[10px]">
-                          ({house.numReviews})
-                        </span>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={(e) => handleOpenDetails(house, e)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-md transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-md transition cursor-pointer"
                       >
                         <Eye className="w-3 h-3" />
                         Details
@@ -430,7 +411,7 @@ export default function Explore({ initialCampusId }) {
                       <button
                         type="button"
                         onClick={(e) => handleOpenReview(house, e)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-md transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 rounded-md transition cursor-pointer"
                       >
                         <MessageSquarePlus className="w-3 h-3" />
                         Review
@@ -444,11 +425,12 @@ export default function Explore({ initialCampusId }) {
         </div>
       </div>
 
-      {/* Map Canvas: Kept rendered in DOM on mobile to prevent 0x0 destruction */}
+      {/* Map Canvas: Explicit height style prevents mobile canvas from collapsing */}
       <div
-        className={`flex-1 h-full min-h-[350px] p-2 md:p-3 bg-slate-100 dark:bg-slate-950 relative transition-colors duration-200 ${
+        className={`flex-1 w-full h-[100dvh] md:h-full relative bg-slate-100 dark:bg-slate-950 ${
           mobileTab === 'map' ? 'flex' : 'hidden md:flex'
         }`}
+        style={{ minHeight: '100dvh' }}
       >
         <DagupanMap
           listings={listings}
@@ -460,7 +442,6 @@ export default function Explore({ initialCampusId }) {
         />
       </div>
 
-      {/* Slide-out Student Saved Bookmarks Drawer */}
       <StudentBookmarksDrawer
         isOpen={isBookmarksOpen}
         onClose={() => setIsBookmarksOpen(false)}
@@ -475,14 +456,12 @@ export default function Explore({ initialCampusId }) {
         }}
       />
 
-      {/* Slide-out TOPSIS Compare Drawer */}
       <CompareDrawer
         isOpen={isCompareOpen}
         onClose={() => setIsCompareOpen(false)}
         selectedHouses={compareList}
       />
 
-      {/* Student Review Dialog */}
       <ReviewModal
         isOpen={isReviewOpen}
         onClose={() => setIsReviewOpen(false)}
@@ -490,7 +469,6 @@ export default function Explore({ initialCampusId }) {
         onReviewSubmitted={() => fetchNearbyBoardingHouses()}
       />
 
-      {/* Dorm Details & Landlord Contact Modal */}
       <DormDetailsModal
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}

@@ -2,7 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @import "leaflet/dist/leaflet.css";
 
-/* Force light mode color scheme across all browsers */
+/* Base color scheme and font setup */
 :root {
   color-scheme: light;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -11,46 +11,36 @@
 }
 
 html,
-body {
+body,
+#root {
   height: 100%;
+  min-height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
   background-color: #f8fafc;
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Let root expand to full viewport without width caps or text centering */
-#root {
-  height: 100%;
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Ensure Leaflet map tiles render cleanly across mobile and desktop */
-/* Prevent Leaflet map container from collapsing to 0px on mobile */
+/* Ensure Leaflet container stays strictly expanded and does not collapse to 0px on mobile */
 .leaflet-container {
   width: 100% !important;
   height: 100% !important;
   min-height: 100% !important;
-  z-index: 0;
+  z-index: 1;
 }
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Global dark mode foundation */
+/* Global dark mode styling */
 html.dark,
-html.dark body {
-  background-color: #020617; /* slate-950 */
-  color: #f8fafc; /* slate-50 */
+html.dark body,
+html.dark #root {
+  background-color: #020617;
+  color: #f8fafc;
 }
 
-/* Ensure Leaflet tiles darken slightly in dark mode so the map isn't blinding */
+/* Subtle map tile dimming in dark mode so the map matches theme without blinding */
 html.dark .leaflet-tile-pane {
   filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
 }
