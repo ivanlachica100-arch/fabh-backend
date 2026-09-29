@@ -1,11 +1,20 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-const { addReview, getReviews } = require('../controllers/reviewController');
-const { protect, authorize } = require('../middleware/auth');
+const {
+  getReviews,
+  addReview,
+  deleteReview,
+} = require('../controllers/reviewController');
+const { protect } = require('../middleware/auth');
 
+// Route: /api/boarding-houses/:boardingHouseId/reviews
 router
   .route('/')
   .get(getReviews)
-  .post(protect, authorize('student', 'admin'), addReview);
+  .post(protect, addReview);
+
+router
+  .route('/:id')
+  .delete(protect, deleteReview);
 
 module.exports = router;
