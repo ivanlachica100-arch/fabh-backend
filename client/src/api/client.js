@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+// Check if we are running locally on localhost/127.0.0.1
+const isLocal = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://fabh-backend.onrender.com/api',
+  // When running locally in browser, automatically target local backend on port 5000
+  baseURL: isLocal 
+    ? 'http://localhost:5000/api' 
+    : (import.meta.env.VITE_API_URL || 'https://fabh-backend.onrender.com/api'),
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

@@ -1,9 +1,8 @@
+// controllers/reviewController.js
 const Review = require('../models/Review');
 const BoardingHouse = require('../models/BoardingHouse');
+const Notification = require('../models/Notification'); // <--- add import
 
-// @desc    Add a review for a boarding house
-// @route   POST /api/boarding-houses/:boardingHouseId/reviews
-// @access  Private (Students only)
 const addReview = async (req, res) => {
   try {
     req.body.boardingHouse = req.params.boardingHouseId;
@@ -15,6 +14,20 @@ const addReview = async (req, res) => {
     }
 
     const review = await Review.create(req.body);
+
+    // Notify the Landlord if the listing has an assigned landlord
+    if (house.landlord) {
+      try {
+        await Notification.create({
+          recipient: house.landlord,
+          title: 'New Student Review Received',
+          message: `A student left a ${req.body.rating}-star review on "${house.title || 'your listing'}".`,
+          type: 'info',
+        });
+      } catch (notifErr) {
+        console.warn('Failed to dispatch landlord notification:', notifErr.message);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -29,31 +42,4 @@ const addReview = async (req, res) => {
     }
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-// @desc    Get reviews for a boarding house
-// @route   GET /api/boarding-houses/:boardingHouseId/reviews
-// @access  Public
-const getReviews = async (req, res) => {
-  try {
-    const reviews = await Review.find({ boardingHouse: req.params.boardingHouseId })
-      .populate({
-        path: 'student',
-        select: 'name',
-      })
-      .sort('-createdAt');
-
-    res.status(200).json({
-      success: true,
-      count: reviews.length,
-      data: reviews,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-module.exports = {
-  addReview,
-  getReviews,
 };

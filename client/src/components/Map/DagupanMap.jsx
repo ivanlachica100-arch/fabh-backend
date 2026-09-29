@@ -33,12 +33,24 @@ function MapController({ selectedCampus, selectedListing, userCoords }) {
   const map = useMap();
 
   useEffect(() => {
-    const handleResize = () => {
+    const triggerResize = () => {
       map.invalidateSize();
     };
-    map.invalidateSize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    // Staggered triggers ensure Leaflet resizes during mobile tab view switches
+    triggerResize();
+    const t1 = setTimeout(triggerResize, 100);
+    const t2 = setTimeout(triggerResize, 350);
+
+    window.addEventListener('resize', triggerResize);
+    window.addEventListener('orientationchange', triggerResize);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', triggerResize);
+      window.removeEventListener('orientationchange', triggerResize);
+    };
   }, [map]);
 
   useEffect(() => {
@@ -261,6 +273,7 @@ export default function DagupanMap({
         zoom={15}
         scrollWheelZoom={true}
         className="w-full h-full min-h-[350px] z-0"
+        style={{ height: '100%', width: '100%', minHeight: '100%' }}
       >
         <MapController
           selectedCampus={selectedCampus}

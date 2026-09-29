@@ -1,117 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/client';
-import { X, ShieldAlert, Loader2, RefreshCw, Activity, Terminal } from 'lucide-react';
+import { 
+  X, 
+  Terminal, 
+  RotateCcw, 
+  Loader2 
+} from 'lucide-react';
 
 export default function AdminAuditLogsModal({ isOpen, onClose }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchLogs();
-    }
+    if (isOpen) fetchLogs();
   }, [isOpen]);
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
       const res = await api.get('/admin/logs');
-      setLogs(res.data.data || []);
+      setLogs(res.data.data || res.data || []);
     } catch (err) {
-      console.error('Failed to load audit logs:', err);
+      console.error('Failed to load logs:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getActionBadgeColor = (action) => {
-    switch (action) {
-      case 'LANDLORD_APPROVED':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'LANDLORD_REJECTED':
-        return 'bg-rose-100 text-rose-800 border-rose-200';
-      case 'LANDLORD_APPLY':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'USER_REGISTER':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'USER_LOGIN':
-        return 'bg-slate-100 text-slate-700 border-slate-200';
-      default:
-        return 'bg-purple-100 text-purple-800 border-purple-200';
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh] transition-colors">
+        
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-slate-100 rounded-xl text-slate-800">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
               <Terminal className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">System Activity & Audit Logs</h3>
-              <p className="text-xs text-slate-500">Trace actions, registrations, and application decisions.</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">System Activity & Audit Logs</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Trace actions, registrations, and application decisions.</p>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={fetchLogs}
-              disabled={loading}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               title="Refresh logs"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RotateCcw className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Content Table */}
-        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
+        {/* Content Body */}
+        <div className="p-5 overflow-y-auto flex-1 space-y-2.5">
           {loading ? (
-            <div className="py-16 flex flex-col items-center justify-center text-slate-400 text-xs gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-              Fetching audit records...
+            <div className="text-center py-12 text-slate-400 dark:text-slate-500 flex flex-col items-center gap-2">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600 dark:text-emerald-400" />
+              <p className="text-xs">Reading security audit logs...</p>
             </div>
           ) : logs.length === 0 ? (
-            <div className="py-16 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
-              No audit logs recorded yet.
-            </div>
+            <p className="text-center py-12 text-xs text-slate-400 dark:text-slate-500">No logs recorded yet.</p>
           ) : (
-            <div className="space-y-2">
-              {logs.map((log) => (
-                <div
-                  key={log._id}
-                  className="p-3 rounded-xl border border-slate-200 bg-white flex items-start justify-between gap-3 text-xs shadow-xs"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getActionBadgeColor(log.action)}`}>
-                        {log.action.replace('_', ' ')}
-                      </span>
-                      <span className="font-semibold text-slate-900">{log.userEmail}</span>
-                    </div>
-                    <p className="text-slate-600">{log.details}</p>
-                  </div>
-                  <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                    {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(log.createdAt).toLocaleDateString()}
+            logs.map((log) => (
+              <div 
+                key={log._id} 
+                className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex flex-col gap-1 transition-colors"
+              >
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    {log.action}
+                  </span>
+                  <span className="text-slate-400 dark:text-slate-500 font-mono">
+                    {new Date(log.createdAt).toLocaleString()}
                   </span>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{log.userEmail || 'System'}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">{log.details}</span>
+                </div>
+              </div>
+            ))
           )}
         </div>
+
       </div>
     </div>
   );

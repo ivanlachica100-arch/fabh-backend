@@ -30,6 +30,25 @@ const UserSchema = new mongoose.Schema(
       enum: ['student', 'landlord', 'admin'],
       default: 'student',
     },
+    // Verification & Adaptive Device MFA Fields
+    isEmailVerified: {
+      type: Boolean,
+      default: true, // Existing users and admin default to verified automatically
+    },
+    otpCode: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    otpExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    knownDevices: {
+      type: [String],
+      default: [],
+    },
     savedBoardingHouses: [
       {
         type: mongoose.Schema.Types.ObjectId,

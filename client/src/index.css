@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @import "leaflet/dist/leaflet.css";
 
 /* Force light mode color scheme across all browsers */
@@ -32,8 +33,24 @@ body {
 }
 
 /* Ensure Leaflet map tiles render cleanly across mobile and desktop */
+/* Prevent Leaflet map container from collapsing to 0px on mobile */
 .leaflet-container {
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  z-index: 0;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Global dark mode foundation */
+html.dark,
+html.dark body {
+  background-color: #020617; /* slate-950 */
+  color: #f8fafc; /* slate-50 */
+}
+
+/* Ensure Leaflet tiles darken slightly in dark mode so the map isn't blinding */
+html.dark .leaflet-tile-pane {
+  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
 }

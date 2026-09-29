@@ -286,21 +286,21 @@ export default function LandlordPortal({ onBackToExplore }) {
   };
 
   return (
-    <div className="w-full h-full overflow-y-auto bg-slate-50 flex flex-col selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="w-full h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-100 dark:selection:bg-emerald-950/50 selection:text-emerald-900 dark:selection:text-emerald-200 transition-colors duration-200">
       {/* Top Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xs transition-colors duration-200">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBackToExplore}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             title="Back to Map Explorer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-base font-bold text-slate-900 leading-tight">Landlord Management Portal</h1>
-            <p className="text-[11px] text-slate-500">Manage room vacancy and register student accommodations</p>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Landlord Management Portal</h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Manage room vacancy and register student accommodations</p>
           </div>
         </div>
 
@@ -308,16 +308,16 @@ export default function LandlordPortal({ onBackToExplore }) {
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Registration Modal */}
+        {/* Registration Modal Form */}
         {showAddForm && (
           <div 
             ref={formTopRef} 
-            className="bg-white border-2 border-emerald-500/40 rounded-2xl p-6 shadow-xl relative animate-in fade-in duration-200"
+            className="bg-white dark:bg-slate-900 border-2 border-emerald-500/40 dark:border-emerald-500/50 rounded-2xl p-6 shadow-xl relative animate-in fade-in duration-200 transition-colors"
           >
-            <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-slate-100">
+            <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                   Register New Accommodation
                 </h2>
               </div>
@@ -330,22 +330,22 @@ export default function LandlordPortal({ onBackToExplore }) {
                   setSelectedFiles([]);
                   setPreviewUrls([]);
                 }}
-                className="text-slate-400 hover:text-slate-700 text-xs font-semibold cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 transition"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-semibold cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Cancel
               </button>
             </div>
 
             {submitError && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{submitError}</span>
               </div>
             )}
 
             {Object.keys(errors).length > 0 && (
-              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+              <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>Please correct the highlighted fields below before publishing.</span>
               </div>
             )}
@@ -355,7 +355,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                 
                 {/* Title */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Property Title <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -363,14 +363,14 @@ export default function LandlordPortal({ onBackToExplore }) {
                     placeholder="e.g., Tapuac Student Quarters"
                     value={formData.title}
                     onChange={(e) => handleChange('title', e.target.value)}
-                    className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                    className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                       errors.title 
-                        ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                        : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                        ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                        : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                     }`}
                   />
                   {errors.title && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3 shrink-0" />
                       {errors.title}
                     </p>
@@ -379,7 +379,7 @@ export default function LandlordPortal({ onBackToExplore }) {
 
                 {/* Street Address */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Street Address <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -387,14 +387,14 @@ export default function LandlordPortal({ onBackToExplore }) {
                     placeholder="e.g., #45 Arellano Street"
                     value={formData.street}
                     onChange={(e) => handleChange('street', e.target.value)}
-                    className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                    className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                       errors.street 
-                        ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                        : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                        ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                        : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                     }`}
                   />
                   {errors.street && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3 shrink-0" />
                       {errors.street}
                     </p>
@@ -403,13 +403,13 @@ export default function LandlordPortal({ onBackToExplore }) {
 
                 {/* Barangay */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Barangay <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formData.barangay}
                     onChange={(e) => handleChange('barangay', e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
                   >
                     <option value="Poblacion Oeste">Poblacion Oeste</option>
                     <option value="Tapuac">Tapuac</option>
@@ -425,7 +425,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                 {/* Rent & Rooms */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                       Monthly Rent (₱) <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -433,35 +433,35 @@ export default function LandlordPortal({ onBackToExplore }) {
                       placeholder="e.g., 3000"
                       value={formData.monthlyRent}
                       onChange={(e) => handleChange('monthlyRent', e.target.value)}
-                      className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                      className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                         errors.monthlyRent 
-                          ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                          : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                          ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                          : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                       }`}
                     />
                     {errors.monthlyRent && (
-                      <p className="text-[10px] text-rose-600 font-medium mt-1">
+                      <p className="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">
                         {errors.monthlyRent}
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                       Rooms Open <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
                       value={formData.roomsAvailable}
                       onChange={(e) => handleChange('roomsAvailable', e.target.value)}
-                      className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                      className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                         errors.roomsAvailable 
-                          ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                          : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                          ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                          : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                       }`}
                     />
                     {errors.roomsAvailable && (
-                      <p className="text-[10px] text-rose-600 font-medium mt-1">
+                      <p className="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">
                         {errors.roomsAvailable}
                       </p>
                     )}
@@ -470,13 +470,13 @@ export default function LandlordPortal({ onBackToExplore }) {
 
                 {/* Gender Preference */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Gender Preference
                   </label>
                   <select
                     value={formData.genderPreference}
                     onChange={(e) => handleChange('genderPreference', e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
                   >
                     <option value="any">Any (Co-ed)</option>
                     <option value="female">Female Only</option>
@@ -486,7 +486,7 @@ export default function LandlordPortal({ onBackToExplore }) {
 
                 {/* Contact Phone */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     Primary Mobile / SMS <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -494,14 +494,14 @@ export default function LandlordPortal({ onBackToExplore }) {
                     placeholder="09171234567"
                     value={formData.phoneNumber}
                     onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                    className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                    className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                       errors.phoneNumber 
-                        ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                        : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                        ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                        : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                     }`}
                   />
                   {errors.phoneNumber && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3 shrink-0" />
                       {errors.phoneNumber}
                     </p>
@@ -510,16 +510,16 @@ export default function LandlordPortal({ onBackToExplore }) {
               </div>
 
               {/* Photos Upload Zone */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1">
-                  <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 transition-colors">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1">
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   Dorm Photos (Upload up to 5 photos)
                 </label>
-                <p className="text-[11px] text-slate-500 mb-2.5">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
                   Uploaded images will display directly on the student Explore view carousel.
                 </p>
 
-                <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-4 text-center bg-white transition cursor-pointer relative group">
+                <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl p-4 text-center bg-white dark:bg-slate-800 transition cursor-pointer relative group">
                   <input
                     type="file"
                     accept="image/*"
@@ -527,18 +527,18 @@ export default function LandlordPortal({ onBackToExplore }) {
                     onChange={handleImageSelect}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <UploadCloud className="w-6 h-6 text-slate-400 group-hover:text-emerald-600 mx-auto transition" />
-                  <p className="text-xs font-semibold text-slate-700 mt-1">
+                  <UploadCloud className="w-6 h-6 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mx-auto transition" />
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1">
                     Click to select dorm photos
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG up to 5MB each (Max 5)</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">JPG, PNG up to 5MB each (Max 5)</p>
                 </div>
 
                 {/* Previews */}
                 {previewUrls.length > 0 && (
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
                     {previewUrls.map((url, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-750 group bg-slate-100 dark:bg-slate-800">
                         <img src={url} alt={`preview-${index}`} className="w-full h-full object-cover" />
                         <button
                           type="button"
@@ -556,7 +556,7 @@ export default function LandlordPortal({ onBackToExplore }) {
 
               {/* Facebook URL */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                   Facebook Profile / Messenger Link (Optional)
                 </label>
                 <input
@@ -564,14 +564,14 @@ export default function LandlordPortal({ onBackToExplore }) {
                   placeholder="https://facebook.com/yourprofile"
                   value={formData.facebookUrl}
                   onChange={(e) => handleChange('facebookUrl', e.target.value)}
-                  className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                  className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                     errors.facebookUrl 
-                      ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                      : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                      ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                      : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                   }`}
                 />
                 {errors.facebookUrl && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1">
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1">
                     {errors.facebookUrl}
                   </p>
                 )}
@@ -579,7 +579,7 @@ export default function LandlordPortal({ onBackToExplore }) {
 
               {/* Description */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                   Property Description <span className="text-rose-500">*</span>
                 </label>
                 <textarea
@@ -587,14 +587,14 @@ export default function LandlordPortal({ onBackToExplore }) {
                   placeholder="Describe proximity to UPang/UC/PSU, curfew rules, study spaces, inclusions..."
                   value={formData.description}
                   onChange={(e) => handleChange('description', e.target.value)}
-                  className={`w-full border rounded-lg p-2.5 text-xs transition focus:outline-none ${
+                  className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
                     errors.description 
-                      ? 'border-rose-400 bg-rose-50/40 focus:ring-2 focus:ring-rose-500' 
-                      : 'border-slate-300 focus:ring-2 focus:ring-emerald-500'
+                      ? 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 focus:ring-2 focus:ring-rose-500' 
+                      : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
                   }`}
                 />
                 {errors.description && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3 shrink-0" />
                     {errors.description}
                   </p>
@@ -603,10 +603,10 @@ export default function LandlordPortal({ onBackToExplore }) {
 
               {/* Amenities */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
                   Included Amenities
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
                   {[
                     { key: 'wifi', label: 'High-speed Wi-Fi' },
                     { key: 'aircon', label: 'Air Conditioning' },
@@ -614,7 +614,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                     { key: 'kitchenAllowed', label: 'Cooking Allowed' },
                     { key: 'cctvSecurity', label: '24/7 CCTV Security' },
                   ].map((amenity) => (
-                    <label key={amenity.key} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                    <label key={amenity.key} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formData[amenity.key]}
@@ -630,8 +630,8 @@ export default function LandlordPortal({ onBackToExplore }) {
               {/* Map Coordinate Picker */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     Geospatial Pin (Required for Distance Engine)
                   </label>
 
@@ -639,18 +639,18 @@ export default function LandlordPortal({ onBackToExplore }) {
                     type="button"
                     onClick={handleUseCurrentLocation}
                     disabled={gettingLocation}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg transition cursor-pointer"
                   >
                     {gettingLocation ? (
-                      <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                      <Loader2 className="w-3 h-3 animate-spin text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <LocateFixed className="w-3 h-3 text-emerald-600" />
+                      <LocateFixed className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     )}
                     {gettingLocation ? 'Acquiring GPS...' : 'Auto-Pin My Current Location'}
                   </button>
                 </div>
 
-                <div className="h-44 w-full rounded-xl overflow-hidden border border-slate-300 relative z-0">
+                <div className="h-44 w-full rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 relative z-0">
                   <MapContainer center={DAGUPAN_CENTER} zoom={15} className="h-full w-full">
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <LocationPicker
@@ -659,13 +659,13 @@ export default function LandlordPortal({ onBackToExplore }) {
                     />
                   </MapContainer>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   Pinned Location: {formData.lat.toFixed(5)}, {formData.lng.toFixed(5)} (Tap map to reposition)
                 </p>
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
@@ -674,14 +674,14 @@ export default function LandlordPortal({ onBackToExplore }) {
                     setSelectedFiles([]);
                     setPreviewUrls([]);
                   }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-lg transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2 cursor-pointer shadow-xs"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2 cursor-pointer shadow-xs"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   {submitting ? 'Uploading & Registering...' : 'Publish Accommodation'}
@@ -694,7 +694,7 @@ export default function LandlordPortal({ onBackToExplore }) {
         {/* Existing Properties Managed */}
         <div>
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Your Registered Properties ({myListings.length})
             </h2>
             {!showAddForm && (
@@ -710,15 +710,15 @@ export default function LandlordPortal({ onBackToExplore }) {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-slate-400 flex flex-col items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            <div className="text-center py-12 text-slate-400 dark:text-slate-500 flex flex-col items-center gap-2">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600 dark:text-emerald-400" />
               <p className="text-xs font-medium">Fetching registered accommodations...</p>
             </div>
           ) : myListings.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
-              <Home className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <h3 className="text-sm text-slate-800 font-bold">No properties listed yet</h3>
-              <p className="text-xs text-slate-500 mt-1 mb-4 max-w-sm mx-auto">
+            <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 transition-colors">
+              <Home className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
+              <h3 className="text-sm text-slate-800 dark:text-white font-bold">No properties listed yet</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4 max-w-sm mx-auto">
                 Publish your boarding house so UPang, UC, PSU, and DCU students can discover it through the search and transit engine.
               </p>
               <button
@@ -735,18 +735,18 @@ export default function LandlordPortal({ onBackToExplore }) {
               {myListings.map((house) => (
                 <div
                   key={house._id}
-                  className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
+                  className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                 >
                   <div>
                     <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-bold text-slate-900 text-xs truncate flex-1">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-xs truncate flex-1">
                         {house.title || house.name}
                       </h3>
                       <button
                         type="button"
                         onClick={() => handleDeleteListing(house._id)}
                         disabled={deletingId === house._id}
-                        className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition cursor-pointer shrink-0"
+                        className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer shrink-0"
                         title="Delete listing"
                       >
                         {deletingId === house._id ? (
@@ -757,18 +757,18 @@ export default function LandlordPortal({ onBackToExplore }) {
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                       {typeof house.address === 'object'
                         ? `${house.address.street}, ${house.address.barangay}`
                         : house.address}
                     </p>
 
-                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-xs">
-                      <span className="font-extrabold text-emerald-700">
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                      <span className="font-extrabold text-emerald-700 dark:text-emerald-400">
                         ₱{house.monthlyRent?.toLocaleString()}{' '}
-                        <span className="text-[10px] font-normal text-slate-400">/ mo</span>
+                        <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500">/ mo</span>
                       </span>
-                      <span className="text-[11px] text-slate-500 font-medium">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         {house.roomsAvailable ?? 1} {house.roomsAvailable === 1 ? 'room' : 'rooms'} open
                       </span>
                     </div>
@@ -780,35 +780,35 @@ export default function LandlordPortal({ onBackToExplore }) {
                           .map(([key]) => (
                             <span
                               key={key}
-                              className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-medium"
+                              className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded font-medium"
                             >
                               {key}
                             </span>
                           ))
                       ) : (
-                        <span className="text-[10px] text-slate-400">Standard Amenities</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">Standard Amenities</span>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] font-medium text-slate-500">Vacancy State</span>
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Vacancy State</span>
                     <button
                       type="button"
                       disabled={togglingId === house._id}
                       onClick={() => handleToggleAvailability(house)}
                       className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
                         house.isAvailable
-                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800'
                       }`}
                     >
                       {togglingId === house._id ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : house.isAvailable ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                        <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                       )}
                       <span>{house.isAvailable ? 'Vacant / Available' : 'Fully Occupied'}</span>
                     </button>

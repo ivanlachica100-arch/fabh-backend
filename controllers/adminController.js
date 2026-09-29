@@ -1,6 +1,7 @@
 // controllers/adminController.js
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const Notification = require('../models/Notification');
 const logActivity = require('../utils/logger');
 
 // GET /api/admin/landlord-applications
@@ -51,7 +52,9 @@ exports.reviewLandlordApplication = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No pending application for this user' });
     }
 
-    if (action === 'approve') {
+    const isApproved = action === 'approve';
+
+    if (isApproved) {
       targetUser.role = 'landlord';
       targetUser.landlordApplication.status = 'approved';
       targetUser.landlordApplication.reviewedAt = new Date();
@@ -67,12 +70,26 @@ exports.reviewLandlordApplication = async (req, res, next) => {
 
     await targetUser.save();
 
+    // Create In-App Notification for Target User
+    try {
+      await Notification.create({
+        recipient: targetUser._id,
+        title: isApproved ? 'Landlord Accreditation Approved!' : 'Application Status Update',
+        message: isApproved
+          ? 'Congratulations! Your landlord verification documents have been approved by administration. You can now manage and publish listings in the Landlord Portal.'
+          : `Your landlord application was not approved. Feedback: ${targetUser.landlordApplication.rejectionReason}`,
+        type: isApproved ? 'success' : 'warning',
+      });
+    } catch (notifErr) {
+      console.warn('In-app notification creation error:', notifErr.message);
+    }
+
     // Log the approval or rejection
     await logActivity({
-      action: action === 'approve' ? 'LANDLORD_APPROVED' : 'LANDLORD_REJECTED',
+      action: isApproved ? 'LANDLORD_APPROVED' : 'LANDLORD_REJECTED',
       userId: req.user.id,
       userEmail: req.user.email,
-      details: `${action === 'approve' ? 'Approved' : 'Rejected'} landlord application for ${targetUser.email}.`,
+      details: `${isApproved ? 'Approved' : 'Rejected'} landlord application for ${targetUser.email}.`,
       req,
     });
 

@@ -1,272 +1,231 @@
 import React, { useState } from 'react';
 import api from '../api/client';
-import { X, CheckCircle2, ChevronRight, Loader2, Sparkles, AlertCircle, PhilippinePeso } from 'lucide-react';
+import { 
+  X, 
+  Sparkles, 
+  ArrowRight, 
+  Check, 
+  Scale, 
+  DollarSign, 
+  Footprints, 
+  Award,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 
-const PRESETS = [
-  {
-    id: 'balanced',
-    name: '⚖️ Balanced',
-    desc: 'Equal priority across price, distance, and rating',
-    weights: { price: 0.25, distance: 0.25, rating: 0.25, amenities: 0.25 },
-  },
-  {
-    id: 'budget',
-    name: '💰 Budget First',
-    desc: 'Prioritizes lowest monthly rental costs',
-    weights: { price: 0.50, distance: 0.20, rating: 0.15, amenities: 0.15 },
-  },
-  {
-    id: 'proximity',
-    name: '🚶 Walking Distance',
-    desc: 'Prioritizes closest proximity to campus',
-    weights: { price: 0.20, distance: 0.50, rating: 0.15, amenities: 0.15 },
-  },
-  {
-    id: 'comfort',
-    name: '⭐ Quality & Comfort',
-    desc: 'Prioritizes reviews, amenities, and room quality',
-    weights: { price: 0.15, distance: 0.15, rating: 0.35, amenities: 0.35 },
-  },
-];
-
-const BUDGET_QUICK_PICKS = [2500, 3500, 5000, 7000];
-
-export default function CompareDrawer({ isOpen, onClose, selectedHouses = [] }) {
-  const [loading, setLoading] = useState(false);
-  const [topsisResults, setTopsisResults] = useState(null);
-  const [selectedPreset, setSelectedPreset] = useState(PRESETS[0].id);
-  const [activeWeights, setActiveWeights] = useState(PRESETS[0].weights);
-  const [maxBudget, setMaxBudget] = useState('');
+export default function CompareDrawer({ isOpen, onClose, selectedHouses }) {
+  const [priority, setPriority] = useState('balanced');
+  const [targetBudget, setTargetBudget] = useState('');
+  const [computing, setComputing] = useState(false);
+  const [results, setResults] = useState(null);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSelectPreset = (preset) => {
-    setSelectedPreset(preset.id);
-    setActiveWeights(preset.weights);
-    setTopsisResults(null);
-  };
+  const handleCompute = async () => {
+    if (!selectedHouses || selectedHouses.length < 2) {
+      setError('Please select at least 2 boarding houses to run TOPSIS decision ranking.');
+      return;
+    }
 
-  const handleBudgetChange = (value) => {
-    setMaxBudget(value);
-    setTopsisResults(null);
-  };
-
-  const handleRunTopsis = async () => {
-    if (selectedHouses.length < 2) return;
-    setLoading(true);
+    setComputing(true);
+    setError('');
     try {
-      const res = await api.post('/boarding-houses/compare', {
+      const res = await api.post('/boarding-houses/compare-topsis', {
         houseIds: selectedHouses.map((h) => h._id),
-        weights: activeWeights,
-        maxBudget: maxBudget ? Number(maxBudget) : null,
+        priority,
+        targetBudget: targetBudget ? Number(targetBudget) : undefined,
       });
-      setTopsisResults(res.data.data || res.data);
+
+      setResults(res.data.data || res.data);
     } catch (err) {
-      console.error('TOPSIS comparison failed:', err);
-      alert('Failed to calculate decision ranking.');
+      console.error('TOPSIS computation error:', err);
+      setError(err.response?.data?.message || 'Could not complete quantitative TOPSIS ranking.');
     } finally {
-      setLoading(false);
+      setComputing(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/60 backdrop-blur-sm flex items-end md:items-stretch justify-end">
-  <div className="w-full h-[90vh] md:h-full md:max-w-2xl bg-white shadow-2xl rounded-t-3xl md:rounded-none flex flex-col animate-in slide-in-from-bottom md:slide-in-from-right duration-200">
+    <div className="fixed inset-0 z-[1050] flex justify-end">
+      {/* Backdrop */}
+      <div 
+        onClick={onClose} 
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+      />
+
+      {/* Drawer Panel */}
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 h-full shadow-2xl z-10 flex flex-col justify-between border-l border-slate-200 dark:border-slate-800 animate-in slide-in-from-right duration-200 transition-colors">
+        
         {/* Header */}
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-600" />
-              Compare with AI (TOPSIS Decision System)
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Multi-Criteria Decision Making ranking based on your living priorities
-            </p>
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Compare with AI (TOPSIS)</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Algorithmic Multi-Criteria Decision Analysis</p>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Selected Properties Overview */}
+        {/* Content Body */}
+        <div className="p-5 overflow-y-auto flex-1 space-y-5">
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Selected Properties Counter */}
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Selected Properties ({selectedHouses.length}/4)
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {selectedHouses.map((house) => (
-                <div key={house._id} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50">
-                  <p className="font-semibold text-sm text-slate-800 truncate">
-                    {house.title || house.name}
-                  </p>
-                  <p className="text-xs text-emerald-600 font-medium mt-0.5">
-                    ₱{house.monthlyRent?.toLocaleString()} / month
-                  </p>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                Selected Accommodations ({selectedHouses?.length || 0}/4)
+              </span>
+            </div>
+
+            {(!selectedHouses || selectedHouses.length === 0) ? (
+              <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400">
+                Check boxes on boarding houses from the map explorer to add them to your comparison pool.
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {selectedHouses.map((house) => (
+                  <div 
+                    key={house._id} 
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs"
+                  >
+                    <span className="font-semibold truncate max-w-[240px] text-slate-800 dark:text-slate-200">
+                      {house.title || house.name}
+                    </span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
+                      ₱{house.monthlyRent?.toLocaleString()}/mo
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Target Monthly Budget Input */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Target Monthly Budget (Optional)
+            </label>
+            <input
+              type="number"
+              placeholder="e.g. 3500 (Penalizes options above this amount)"
+              value={targetBudget}
+              onChange={(e) => setTargetBudget(e.target.value)}
+              className="w-full border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">Quick set:</span>
+              {[2500, 3500, 5000, 7000].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setTargetBudget(String(amt))}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+                >
+                  ₱{amt.toLocaleString()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Living Priorities Selection */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+              Choose What Matters Most To You
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { id: 'balanced', label: 'Balanced', desc: 'Equal priority across price, distance, rating', icon: Scale },
+                { id: 'budget', label: 'Budget First', desc: 'Prioritizes lowest monthly rental costs', icon: DollarSign },
+                { id: 'distance', label: 'Walking Distance', desc: 'Prioritizes closest proximity to campus', icon: Footprints },
+                { id: 'quality', label: 'Quality & Comfort', desc: 'Prioritizes reviews and amenities', icon: Award },
+              ].map((item) => {
+                const IconComponent = item.icon;
+                const isSelected = priority === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPriority(item.id)}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-850'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{item.label}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{item.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* TOPSIS Results Display */}
+          {results && results.rankings && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
+                Ranked TOPSIS Results
+              </span>
+              {results.rankings.map((ranked, idx) => (
+                <div 
+                  key={ranked.houseId || idx}
+                  className={`p-3 rounded-xl border flex items-center justify-between text-xs ${
+                    idx === 0 
+                      ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-slate-900 dark:text-white' 
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      idx === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}>
+                      #{idx + 1}
+                    </span>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{ranked.name}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Score: {(ranked.score * 100).toFixed(1)}% match</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">₱{ranked.price?.toLocaleString()}</span>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Student Target Max Budget Input */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <PhilippinePeso className="w-3.5 h-3.5 text-emerald-600" />
-                Target Monthly Budget (Optional)
-              </label>
-              {maxBudget && (
-                <button
-                  type="button"
-                  onClick={() => handleBudgetChange('')}
-                  className="text-[11px] text-slate-400 hover:text-slate-600 underline"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">₱</span>
-              <input
-                type="number"
-                min="500"
-                step="100"
-                placeholder="e.g. 3500 (Penalizes options above this amount)"
-                value={maxBudget}
-                onChange={(e) => handleBudgetChange(e.target.value)}
-                className="w-full pl-8 pr-4 py-2 bg-white text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-[11px] text-slate-400">Quick set:</span>
-              {BUDGET_QUICK_PICKS.map((presetVal) => (
-                <button
-                  key={presetVal}
-                  type="button"
-                  onClick={() => handleBudgetChange(presetVal.toString())}
-                  className={`text-[11px] px-2.5 py-0.5 rounded-lg border transition ${
-                    maxBudget === presetVal.toString()
-                      ? 'border-emerald-500 bg-emerald-100 text-emerald-800 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  ₱{presetVal.toLocaleString()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Student Priority Presets */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Choose What Matters Most To You
-            </h4>
-            <div className="grid grid-cols-2 gap-2.5">
-              {PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className={`p-3 rounded-xl border text-left transition ${
-                    selectedPreset === preset.id
-                      ? 'border-emerald-600 bg-emerald-50/60 ring-1 ring-emerald-600'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
-                >
-                  <p className="text-xs font-bold text-slate-900">{preset.name}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{preset.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Action Trigger */}
-          <button
-            disabled={selectedHouses.length < 2 || loading}
-            onClick={handleRunTopsis}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-medium text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Computing Relative Closeness...
-              </>
-            ) : (
-              <>
-                Compute Best Match with AI
-                <ChevronRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-
-          {/* TOPSIS Ranked Output */}
-          {topsisResults && (
-            <div className="space-y-4 pt-2 border-t border-slate-100">
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Algorithmic Recommendation Ranking
-              </h3>
-              <div className="space-y-3">
-                {topsisResults.map((item, idx) => {
-                  const scoreVal = item.topsisScore ?? item.score ?? 0;
-                  return (
-                    <div
-                      key={item.houseId || idx}
-                      className={`p-4 rounded-xl border flex items-center justify-between ${
-                        idx === 0
-                          ? 'border-emerald-500 bg-emerald-50/60 shadow-sm'
-                          : 'border-slate-200 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                            idx === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          #{item.rank || idx + 1}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-sm text-slate-900">
-                              {item.title || item.name || `Option ${idx + 1}`}
-                            </h4>
-                            {item.isOverBudget && (
-                              <span className="text-[10px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                <AlertCircle className="w-3 h-3" />
-                                Over Budget
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Relative Closeness Score:{' '}
-                            <span className="font-semibold text-slate-700">
-                              {(scoreVal * 100).toFixed(1)}%
-                            </span>
-                            {item.monthlyRent && (
-                              <span className="text-slate-400 ml-2">
-                                (₱{item.monthlyRent.toLocaleString()}/mo)
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      {idx === 0 && (
-                        <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full flex items-center gap-1 shrink-0 ml-2">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Best Choice
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           )}
         </div>
+
+        {/* Action Footer */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+          <button
+            type="button"
+            disabled={computing || !selectedHouses || selectedHouses.length < 2}
+            onClick={handleCompute}
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+          >
+            {computing && <Loader2 className="w-4 h-4 animate-spin" />}
+            {computing ? 'Running TOPSIS Algorithm...' : 'Compute Best Match with AI'}
+          </button>
+        </div>
+
       </div>
     </div>
   );

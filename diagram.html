@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FABH MERN Architecture Diagram</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #0f172a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* Slim container width tailored for standard Word/Docs pages */
+    .canvas {
+      width: 740px;
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 12px;
+      border-bottom: 1.5px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+      text-transform: uppercase;
+    }
+
+    .header p {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .layer-card {
+      border-radius: 10px;
+      padding: 10px 14px;
+      position: relative;
+    }
+
+    /* Layer Border Styles */
+    .client-layer { background: #f8fafc; border: 1.5px solid #0284c7; }
+    .backend-layer { background: #f8fafc; border: 1.5px solid #059669; }
+    .database-layer { background: #f8fafc; border: 1.5px solid #d97706; }
+
+    .layer-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .layer-title-text {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .client-text { color: #0369a1; }
+    .backend-text { color: #047857; }
+    .database-text { color: #b45309; }
+
+    .tag {
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .tag-client { background: #e0f2fe; color: #0369a1; }
+    .tag-backend { background: #d1fae5; color: #065f46; }
+    .tag-database { background: #fef3c7; color: #92400e; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .sub-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+
+    .sub-box h4 {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 3px;
+    }
+
+    .sub-box ul {
+      list-style: none;
+      font-size: 9px;
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    .sub-box ul li {
+      position: relative;
+      padding-left: 8px;
+    }
+
+    .sub-box ul li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #94a3b8;
+    }
+
+    /* Compact Connector Bridges */
+    .connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 6px 0;
+    }
+
+    .pill-bus {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 3px 12px;
+      border-radius: 14px;
+      font-size: 9px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #334155;
+    }
+
+    .pill-bus span {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      color: #94a3b8;
+    }
+
+    .pill-bus span strong {
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="canvas" id="architecture-diagram">
+    <div class="header">
+      <h1>FABH System Architecture & Deployment</h1>
+      <p>MERN Stack • Geospatial Proximity • Multi-Criteria TOPSIS Decision Engine • RBAC Security</p>
+    </div>
+
+    <!-- CLIENT LAYER -->
+    <div class="layer-card client-layer">
+      <div class="layer-title">
+        <span class="layer-title-text client-text">1. Frontend Client Layer (React 19 SPA)</span>
+        <span class="tag tag-client">Vercel: https://fabh-backend.vercel.app</span>
+      </div>
+      <div class="grid-3">
+        <div class="sub-box">
+          <h4>Landing & Discovery</h4>
+          <ul>
+            <li>Two-Column Hero Landing</li>
+            <li>Campus Selector Badges</li>
+            <li>Interactive Feature Highlights</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>Geospatial Explorer</h4>
+          <ul>
+            <li>Leaflet Dagupan Map Pins</li>
+            <li>OSRM Foot-Routing Polylines</li>
+            <li>Live Continuous GPS Tracking</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>Decision Engine & Portal</h4>
+          <ul>
+            <li>TOPSIS "Compare with AI"</li>
+            <li>Landlord Portal & Vacancy Switch</li>
+            <li>Physical Dorm File Uploads</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECTOR 1 -->
+    <div class="connector">
+      <div class="pill-bus">
+        <span>▼ <strong>HTTPS / TLS 1.3</strong></span>
+        <span>• <strong>JWT Bearer</strong> & Cookies</span>
+        <span>• <strong>CORS</strong> OPTIONS 204 Handled</span>
+      </div>
+    </div>
+
+    <!-- BACKEND LAYER -->
+    <div class="layer-card backend-layer">
+      <div class="layer-title">
+        <span class="layer-title-text backend-text">2. Backend Application Layer (Node.js & Express REST API)</span>
+        <span class="tag tag-backend">Render: https://fabh-backend.onrender.com</span>
+      </div>
+      <div class="grid-3">
+        <div class="sub-box">
+          <h4>Security Middlewares</h4>
+          <ul>
+            <li>express-rate-limit (Brute-Force)</li>
+            <li>express-mongo-sanitize (NoSQL)</li>
+            <li>protect & authorize (RBAC Rules)</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>Controllers & File Flow</h4>
+          <ul>
+            <li>authController & adminController</li>
+            <li>boardingHouseController ($geoNear)</li>
+            <li>Multer Disk Storage (/uploads)</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>Decision Algorithms</h4>
+          <ul>
+            <li>TOPSIS Matrix ($C_i$ Closeness)</li>
+            <li>Bcryptjs Hashing (10 Salt Rounds)</li>
+            <li>Live Health Check (/api/health)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECTOR 2 -->
+    <div class="connector">
+      <div class="pill-bus" style="background: #1e293b;">
+        <span>▼ <strong>Mongoose ODM v8</strong></span>
+        <span>• <strong>SCRAM-SHA-256</strong> Encrypted TCP</span>
+        <span>• <strong>2dsphere</strong> Spatial Aggregation</span>
+      </div>
+    </div>
+
+    <!-- DATABASE LAYER -->
+    <div class="layer-card database-layer">
+      <div class="layer-title">
+        <span class="layer-title-text database-text">3. Cloud Data Layer (MongoDB Atlas Cluster)</span>
+        <span class="tag tag-database">Cluster0 • Cloud Replica Set</span>
+      </div>
+      <div class="grid-4">
+        <div class="sub-box">
+          <h4>users</h4>
+          <ul>
+            <li>name, email, password</li>
+            <li>select: false on auth</li>
+            <li>landlordApplication doc</li>
+            <li>RBAC role assignment</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>boardinghouses</h4>
+          <ul>
+            <li>title, monthlyRent, address</li>
+            <li>location: Point [lng, lat]</li>
+            <li>2dsphere Spatial Index</li>
+            <li>isAvailable & images</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>reviews</h4>
+          <ul>
+            <li>student (User ref)</li>
+            <li>boardingHouse ref</li>
+            <li>Compound Unique Index</li>
+            <li>Rating score & comments</li>
+          </ul>
+        </div>
+        <div class="sub-box">
+          <h4>auditlogs</h4>
+          <ul>
+            <li>action & performedBy ref</li>
+            <li>userEmail, ipAddress</li>
+            <li>userAgent & timestamp</li>
+            <li>Immutable audit trail</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -72,6 +72,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // 7. Route Handlers
+const notificationRoutes = require('./routes/notifications');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const adminRoutes = require('./routes/admin');
@@ -83,6 +84,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/boarding-houses', boardingHouseRoutes);
 app.use('/api/boarding-houses/:boardingHouseId/reviews', reviewRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 8. Database Connection
 mongoose
