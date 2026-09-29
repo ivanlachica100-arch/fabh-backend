@@ -17,8 +17,7 @@ import {
   Eye, 
   Bookmark, 
   Check, 
-  Building, 
-  RotateCcw 
+  Building 
 } from 'lucide-react';
 
 export default function Explore({ initialCampusId }) {
@@ -156,7 +155,7 @@ export default function Explore({ initialCampusId }) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative transition-colors duration-200">
+    <div className="flex flex-col md:flex-row h-screen h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative transition-colors duration-200">
       {/* Mobile Floating View Switcher (< md screens only) */}
       <div className="md:hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-[998] flex items-center bg-slate-900/95 dark:bg-slate-900/95 text-white rounded-full p-1.5 shadow-2xl backdrop-blur-md border border-slate-700/50">
         <button
@@ -183,7 +182,7 @@ export default function Explore({ initialCampusId }) {
 
       {/* Left Sidebar: Discovery & Filtering Panel */}
       <div
-        className={`w-full md:w-1/3 md:min-w-[380px] md:max-w-[430px] h-full flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 z-10 shadow-sm transition-colors duration-200 ${
+        className={`w-full md:w-1/3 md:min-w-[380px] md:max-w-[430px] h-full flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 z-10 shadow-sm transition-colors duration-200 ${
           mobileTab === 'list' ? 'flex' : 'hidden md:flex'
         }`}
       >
@@ -445,9 +444,9 @@ export default function Explore({ initialCampusId }) {
         </div>
       </div>
 
-      {/* Map Canvas */}
+      {/* Map Canvas: Kept rendered in DOM on mobile to prevent 0x0 destruction */}
       <div
-        className={`flex-1 h-full p-2 md:p-3 bg-slate-100 dark:bg-slate-950 relative transition-colors duration-200 ${
+        className={`flex-1 h-full min-h-[350px] p-2 md:p-3 bg-slate-100 dark:bg-slate-950 relative transition-colors duration-200 ${
           mobileTab === 'map' ? 'flex' : 'hidden md:flex'
         }`}
       >
@@ -457,6 +456,7 @@ export default function Explore({ initialCampusId }) {
           selectedListing={selectedListing}
           onSelectListing={(item) => setSelectedListing(item)}
           onOpenDetails={(item) => handleOpenDetails(item)}
+          isActiveView={mobileTab === 'map'}
         />
       </div>
 

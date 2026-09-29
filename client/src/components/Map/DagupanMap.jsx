@@ -16,7 +16,7 @@ L.Icon.Default.mergeOptions({
 const createCampusIcon = (color) =>
   L.divIcon({
     className: 'custom-campus-icon',
-    html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); color: white; font-weight: bold; font-size: 11px;">🎓</div>`,
+    html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); color: white; font-weight: bold; font-size: 11px;">🏛️</div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
   });
@@ -29,18 +29,19 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [9, 9],
 });
 
-function MapController({ selectedCampus, selectedListing, userCoords }) {
+function MapController({ selectedCampus, selectedListing, userCoords, isActiveView }) {
   const map = useMap();
 
+  // Multi-stage invalidation to reliably force tile rendering on mobile device mounts
   useEffect(() => {
     const triggerResize = () => {
       map.invalidateSize();
     };
 
-    // Staggered triggers ensure Leaflet resizes during mobile tab view switches
     triggerResize();
-    const t1 = setTimeout(triggerResize, 100);
-    const t2 = setTimeout(triggerResize, 350);
+    const t1 = setTimeout(triggerResize, 150);
+    const t2 = setTimeout(triggerResize, 400);
+    const t3 = setTimeout(triggerResize, 800);
 
     window.addEventListener('resize', triggerResize);
     window.addEventListener('orientationchange', triggerResize);
@@ -48,10 +49,11 @@ function MapController({ selectedCampus, selectedListing, userCoords }) {
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
       window.removeEventListener('resize', triggerResize);
       window.removeEventListener('orientationchange', triggerResize);
     };
-  }, [map]);
+  }, [map, isActiveView]);
 
   useEffect(() => {
     if (selectedListing?.location?.coordinates) {
@@ -104,6 +106,7 @@ export default function DagupanMap({
   selectedCampus,
   selectedListing,
   onOpenDetails,
+  isActiveView = true,
 }) {
   const [userLocation, setUserLocation] = useState(null);
   const [isTrackingLive, setIsTrackingLive] = useState(false);
@@ -209,60 +212,60 @@ export default function DagupanMap({
   };
 
   return (
-    <div className="relative z-0 w-full h-full rounded-2xl overflow-hidden shadow-md border border-slate-200">
+    <div className="relative z-0 w-full h-full min-h-[350px] rounded-2xl overflow-hidden shadow-md border border-slate-200">
       {/* Multi-Modal Commute Estimator Banner */}
       {routeInfo && (
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-emerald-500/40 w-11/12 max-w-md">
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-emerald-500/40 w-11/12 max-w-md">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-bold text-slate-900 leading-tight">
+              <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                 Transit Estimator: {routeInfo.targetTitle}
               </p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
                 {routeInfo.distanceMeters} meters from {routeInfo.originName}
               </p>
             </div>
             <button
               type="button"
               onClick={clearRoute}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Dagupan Travel Mode Comparison Badges */}
-          <div className="grid grid-cols-4 gap-1.5 text-center pt-1 border-t border-slate-100">
-            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-800">
+          <div className="grid grid-cols-4 gap-1.5 text-center pt-1 border-t border-slate-100 dark:border-slate-800">
+            <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
               <span className="text-sm">🚶</span>
               <p className="text-[11px] font-bold mt-0.5">
                 {Math.max(1, Math.round(routeInfo.distanceMeters / 75))} min
               </p>
-              <p className="text-[9px] text-emerald-600 uppercase font-semibold">Walk</p>
+              <p className="text-[9px] text-emerald-600 dark:text-emerald-400 uppercase font-semibold">Walk</p>
             </div>
 
-            <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-800">
+            <div className="p-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300">
               <span className="text-sm">🚲</span>
               <p className="text-[11px] font-bold mt-0.5">
                 {Math.max(1, Math.round(routeInfo.distanceMeters / 250))} min
               </p>
-              <p className="text-[9px] text-cyan-600 uppercase font-semibold">Bike</p>
+              <p className="text-[9px] text-cyan-600 dark:text-cyan-400 uppercase font-semibold">Bike</p>
             </div>
 
-            <div className="p-1.5 rounded-lg bg-amber-50 text-amber-800">
+            <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
               <span className="text-sm">🛵</span>
               <p className="text-[11px] font-bold mt-0.5">
                 {Math.max(1, Math.round(routeInfo.distanceMeters / 450))} min
               </p>
-              <p className="text-[9px] text-amber-600 uppercase font-semibold">Motor</p>
+              <p className="text-[9px] text-amber-600 dark:text-amber-400 uppercase font-semibold">Motor</p>
             </div>
 
-            <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-800">
+            <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300">
               <span className="text-sm">🚐</span>
               <p className="text-[11px] font-bold mt-0.5">
                 {Math.max(2, Math.round(routeInfo.distanceMeters / 300) + 2)} min
               </p>
-              <p className="text-[9px] text-indigo-600 uppercase font-semibold">Jeep/Bus</p>
+              <p className="text-[9px] text-indigo-600 dark:text-indigo-400 uppercase font-semibold">Jeep/Bus</p>
             </div>
           </div>
         </div>
@@ -273,12 +276,13 @@ export default function DagupanMap({
         zoom={15}
         scrollWheelZoom={true}
         className="w-full h-full min-h-[350px] z-0"
-        style={{ height: '100%', width: '100%', minHeight: '100%' }}
+        style={{ height: '100%', width: '100%', minHeight: '350px' }}
       >
         <MapController
           selectedCampus={selectedCampus}
           selectedListing={selectedListing}
           userCoords={userLocation}
+          isActiveView={isActiveView}
         />
 
         <TileLayer
@@ -319,7 +323,7 @@ export default function DagupanMap({
           >
             <Popup>
               <div className="text-sm font-semibold text-slate-800">
-                🎓 {campus.name}
+                🏛️ {campus.name}
               </div>
             </Popup>
           </Marker>
