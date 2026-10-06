@@ -1,77 +1,80 @@
 const express = require('express');
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
-const { 
-  register, 
-  sendRegisterOtp,
-  verifyRegisterOtp,
-  login, 
-  verifyDeviceOtp,
-  logout, 
-  getMe, 
+const {
+  register,
+  login,
+  getMe,
+  logout,
   applyLandlord,
+  deleteAccount,
   updateDetails,
   sendPasswordOtp,
   updatePassword,
-  deleteAccount,
-  deactivateUserByAdmin,
+  sendRegisterOtp,
+  verifyRegisterOtp,
+  verifyDeviceOtp,
+  forgotPasswordOtp,
+  resetForgotPassword,
   getAllUsersByAdmin,
+  deactivateUserByAdmin,
   reactivateUserByAdmin,
 } = require('../controllers/authController');
+
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../utils/upload');
+const rateLimit = require('express-rate-limit');
 
-// Rate limiter: Max 10 attempts per 15 minutes for credential/verification checks
+// Rate limiters with preflight skip
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
+  max: 20,
+  skip: (req) => req.method === 'OPTIONS',
   message: {
     success: false,
-    message: 'Too many authentication attempts from this IP. Please try again after 15 minutes.',
+    message: 'Too many authentication attempts. Please try again after 15 minutes or reset your password.',
   },
 });
 
-// Rate limiter: Max 5 OTP code requests per 15 minutes to prevent email spamming
 const otpRequestLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
+  windowMs: 10 * 60 * 1000,
+  max: 6,
+  skip: (req) => req.method === 'OPTIONS',
   message: {
     success: false,
-    message: 'Too many verification code requests. Please wait 15 minutes before requesting again.',
+    message: 'Too many verification code requests. Please wait a few minutes.',
   },
 });
 
-// Public Standard & OTP Routes (Rate-Protected)
-router.post('/register', register);
+// Registration Flow
 router.post('/send-register-otp', otpRequestLimiter, sendRegisterOtp);
 router.post('/verify-register-otp', authLimiter, verifyRegisterOtp);
+router.post('/register', authLimiter, register);
 
+// Login & MFA Flow
 router.post('/login', authLimiter, login);
 router.post('/verify-device-otp', authLimiter, verifyDeviceOtp);
+
+// Public Forgot Password Recovery Flow
+router.post('/forgot-password-otp', otpRequestLimiter, forgotPasswordOtp);
+router.post('/reset-forgot-password', authLimiter, resetForgotPassword);
+
+// Session Management
+router.get('/me', protect, getMe);
 router.get('/logout', logout);
 
-// Protected session route
-router.get('/me', protect, getMe);
-
-// Settings modal routes with OTP protection
-router.put('/update-details', protect, updateDetails);
+// In-App Authenticated Password Update
 router.post('/send-password-otp', protect, otpRequestLimiter, sendPasswordOtp);
 router.put('/update-password', protect, updatePassword);
+
+// Profile & Account Management
+router.put('/update-details', protect, updateDetails);
 router.delete('/delete-account', protect, deleteAccount);
 
-// Admin User Moderation Endpoints
-router.get('/admin/users', protect, authorize('admin'), getAllUsersByAdmin);
-router.put('/admin/users/:id/deactivate', protect, authorize('admin'), deactivateUserByAdmin);
-router.put('/admin/users/:id/reactivate', protect, authorize('admin'), reactivateUserByAdmin);
-
-// Multipart file upload for Landlord Application
+// Landlord Verification Upload
 router.post(
   '/apply-landlord',
   protect,
+  authorize('student'),
   upload.fields([
     { name: 'idDocument', maxCount: 1 },
     { name: 'ownershipDocument', maxCount: 1 },
@@ -79,12 +82,9 @@ router.post(
   applyLandlord
 );
 
-// Landlord/Admin Protected Route
-router.get('/landlord-only', protect, authorize('landlord', 'admin'), (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Welcome Landlord/Admin!',
-  });
-});
+// Administrative User Management
+router.get('/admin/users', protect, authorize('admin'), getAllUsersByAdmin);
+router.put('/admin/users/:id/deactivate', protect, authorize('admin'), deactivateUserByAdmin);
+router.put('/admin/users/:id/reactivate', protect, authorize('admin'), reactivateUserByAdmin);
 
 module.exports = router;

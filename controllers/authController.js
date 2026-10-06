@@ -18,6 +18,7 @@ const sendTokenResponse = (user, statusCode, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
   };
 
   res
@@ -65,12 +66,10 @@ exports.sendRegisterOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
-    // Generate 6-digit numeric OTP
     const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const salt = await bcrypt.genSalt(10);
     const hashedOtp = await bcrypt.hash(rawOtp, salt);
 
-    // Save temporary unverified user or update if already pending
     let user = await User.findOne({ email: cleanEmail });
     if (!user) {
       user = new User({
@@ -129,7 +128,6 @@ exports.verifyRegisterOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid 6-digit verification code.' });
     }
 
-    // Activate user and record the current device
     user.isEmailVerified = true;
     user.otpCode = null;
     user.otpExpires = null;
@@ -230,21 +228,32 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
+    if (user.isDeactivated) {
+      return res.status(403).json({
+        success: false,
+        message: `Your account has been deactivated. Reason: ${user.deactivationReason || 'Administrative decision.'}`,
+      });
+    }
+
     const userAgent = req.headers['user-agent'] || 'unknown';
 
     // ADMIN ALWAYS BYPASSES DEVICE CHECKS TO PREVENT DEFENSE LOCKOUTS
     if (user.role === 'admin') {
-      await logActivity({
-        action: 'ADMIN_LOGIN',
-        userId: user._id,
-        userEmail: user.email,
-        details: 'Admin authenticated successfully (Adaptive MFA Bypassed)',
-        req,
-      });
+      try {
+        await logActivity({
+          action: 'ADMIN_LOGIN',
+          userId: user._id,
+          userEmail: user.email,
+          details: 'Administrator logged into system',
+          req,
+        });
+      } catch (logErr) {
+        console.warn('Admin login audit log error:', logErr.message);
+      }
       return sendTokenResponse(user, 200, res);
     }
 
-    // Adaptive Device Verification Check
+    // Adaptive Device Verification Check for regular users
     const isKnownDevice = user.knownDevices && user.knownDevices.includes(userAgent);
 
     if (!isKnownDevice && user.knownDevices && user.knownDevices.length > 0) {
@@ -264,19 +273,22 @@ exports.login = async (req, res) => {
       });
     }
 
-    // If first login or recognized device, record footprint and log in
     if (!user.knownDevices.includes(userAgent)) {
       user.knownDevices.push(userAgent);
       await user.save();
     }
 
-    await logActivity({
-      action: 'USER_LOGIN',
-      userId: user._id,
-      userEmail: user.email,
-      details: 'User authenticated successfully',
-      req,
-    });
+    try {
+      await logActivity({
+        action: 'USER_LOGIN',
+        userId: user._id,
+        userEmail: user.email,
+        details: 'User authenticated successfully',
+        req,
+      });
+    } catch (logErr) {
+      console.warn('User login audit log error:', logErr.message);
+    }
 
     sendTokenResponse(user, 200, res);
   } catch (error) {
@@ -336,7 +348,103 @@ exports.verifyDeviceOtp = async (req, res) => {
   }
 };
 
-// @desc    Send OTP to Authorized User for Password Change
+// @desc    PUBLIC 1: Request 6-digit OTP code to reset forgotten password
+// @route   POST /api/auth/forgot-password-otp
+// @access  Public
+exports.forgotPasswordOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Please enter your registered email address.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No registered account found with this email.' });
+    }
+
+    const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const salt = await bcrypt.genSalt(10);
+    user.otpCode = await bcrypt.hash(rawOtp, salt);
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    await sendOtpEmail(cleanEmail, rawOtp, 'Password Reset');
+
+    res.status(200).json({
+      success: true,
+      message: `Password reset verification code dispatched to ${cleanEmail}`,
+    });
+  } catch (error) {
+    console.error('Forgot password OTP error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    PUBLIC 2: Verify OTP code & reset password without logging in
+// @route   POST /api/auth/reset-forgot-password
+// @access  Public
+exports.resetForgotPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, verification code, and new password are required.',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long.',
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail }).select('+password +otpCode +otpExpires');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    if (!user.otpExpires || user.otpExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    const isOtpValid = await bcrypt.compare(otp.trim(), user.otpCode);
+    if (!isOtpValid) {
+      return res.status(400).json({ success: false, message: 'Invalid 6-digit verification code.' });
+    }
+
+    user.password = newPassword;
+    user.otpCode = null;
+    user.otpExpires = null;
+    await user.save();
+
+    await logActivity({
+      action: 'USER_PASSWORD_RESET',
+      userId: user._id,
+      userEmail: user.email,
+      details: 'Password was successfully reset via public self-service email OTP',
+      req,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password successfully reset! You can now sign in with your new password.',
+    });
+  } catch (error) {
+    console.error('Reset forgot password error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Send OTP to Authorized User for In-App Password Change
 // @route   POST /api/auth/send-password-otp
 // @access  Private
 exports.sendPasswordOtp = async (req, res) => {
@@ -349,7 +457,7 @@ exports.sendPasswordOtp = async (req, res) => {
     const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const salt = await bcrypt.genSalt(10);
     user.otpCode = await bcrypt.hash(rawOtp, salt);
-    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
     await sendOtpEmail(user.email, rawOtp, 'Password Change Verification');
@@ -398,7 +506,6 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    // If an OTP was requested, verify it
     if (otp) {
       if (!user.otpExpires || user.otpExpires < new Date()) {
         return res.status(400).json({ success: false, message: 'OTP has expired. Request a new code.' });
@@ -458,12 +565,22 @@ exports.getMe = async (req, res) => {
 };
 
 // @route   GET /api/auth/logout
+// @desc    Clear cross-site session cookie matching production sameSite & secure parameters
 exports.logout = (req, res) => {
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 5 * 1000),
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.cookie('token', '', {
+    expires: new Date(0), // Set to 1970 to force browser eviction
     httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
   });
-  res.status(200).json({ success: true, message: 'Logged out successfully' });
+
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
 };
 
 // @desc    Apply as Landlord
@@ -533,6 +650,7 @@ exports.applyLandlord = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // @desc    Permanently delete own user account (DPA 2012 compliance)
 // @route   DELETE /api/auth/delete-account
 // @access  Private
@@ -552,7 +670,6 @@ exports.deleteAccount = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    // Protect master admin from accidental deletion
     if (user.role === 'admin') {
       return res.status(403).json({
         success: false,
@@ -568,7 +685,6 @@ exports.deleteAccount = async (req, res) => {
       });
     }
 
-    // Record audit trail before deletion
     await logActivity({
       action: 'USER_ACCOUNT_DELETED',
       userId: user._id,
@@ -579,10 +695,13 @@ exports.deleteAccount = async (req, res) => {
 
     await User.findByIdAndDelete(user._id);
 
-    // Clear session cookie
-    res.cookie('token', 'none', {
-      expires: new Date(Date.now() + 5 * 1000),
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('token', '', {
+      expires: new Date(0),
       httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
     });
 
     res.status(200).json({
@@ -704,7 +823,6 @@ exports.deactivateUserByAdmin = async (req, res) => {
     user.deactivatedAt = new Date();
     await user.save();
 
-    // Mail notice / console fallback
     try {
       const { sendAccountDeactivationEmail } = require('../utils/mailer');
       if (typeof sendAccountDeactivationEmail === 'function') {
@@ -770,4 +888,3 @@ exports.reactivateUserByAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
