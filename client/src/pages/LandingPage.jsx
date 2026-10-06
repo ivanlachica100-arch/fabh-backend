@@ -18,14 +18,14 @@ import {
   HelpCircle
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
-import cortezImg from '../assets/team/cortez.jpg.jpg';
-import seninImg from '../assets/team/senin.jpg.jpg';
-import subangImg from '../assets/team/subang.jpg.jpg';
-import dueyImg from '../assets/team/duey.jpg.jpg';
-import villacortaImg from '../assets/team/villacorta.jpg.jpg';
-import obleroImg from '../assets/team/oblero.jpg.jpg';
-import nerizonImg from '../assets/team/nerizon.jpg.jpg';
-import ventanillaImg from '../assets/team/ventanilla.jpg.jpg';
+import cortezImg from '../assets/team/cortez.jpg';
+import seninImg from '../assets/team/senin.jpg';
+import subangImg from '../assets/team/subang.jpg';
+import dueyImg from '../assets/team/duey.jpg';
+import villacortaImg from '../assets/team/villacorta.jpg';
+import obleroImg from '../assets/team/oblero.jpg';
+import nerizonImg from '../assets/team/nerizon.jpg';
+import ventanillaImg from '../assets/team/ventanilla.jpg';
 
 export default function LandingPage({ 
   onStartExploring, 
