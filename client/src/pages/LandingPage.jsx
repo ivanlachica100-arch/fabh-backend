@@ -11,8 +11,11 @@ import {
   Building2,
   CheckCircle2,
   LayoutDashboard,
-  User,
-  Building
+  Building,
+  Mail,
+  Users,
+  Award,
+  HelpCircle
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 
@@ -45,6 +48,63 @@ export default function LandingPage({
       name: 'DCU / PIMSAT',
       area: 'Tapuac District',
     },
+  ];
+
+  // Team roster with 2x2 photo slot ready (set photo to image URL or leave null)
+  const teamMembers = [
+    {
+      name: 'Cortez, Roan P.',
+      role: 'Full-Stack Developer & Lead Architect',
+      photo: null,
+      highlight: true,
+    },
+    {
+      name: 'Senin, Ivan M.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+    {
+      name: 'Subang, Reymart N.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+    {
+      name: 'Duey, John Paul P.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+    {
+      name: 'Villacorta, Ian James R.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+    {
+      name: 'Oblero, Aldrin C.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+    {
+      name: 'Nerizon, Sebastian U.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+    {
+      name: 'Ventanilla, Andrei Demitri T.',
+      role: 'Capstone Researcher & Contributor',
+      photo: null,
+      highlight: false,
+    },
+  ];
+
+  const advisers = [
+    'Engilbert Comadre',
+    'Ariel Almonte',
   ];
 
   return (
@@ -104,7 +164,7 @@ export default function LandingPage({
       </header>
 
       {/* Main Responsive Body */}
-      <main className="max-w-7xl mx-auto px-6 py-6 sm:py-8 flex-1 flex flex-col justify-center gap-8 w-full">
+      <main className="max-w-7xl mx-auto px-6 py-6 sm:py-8 flex-1 flex flex-col justify-center gap-12 w-full">
         
         {/* Two-Column Top Hero Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -257,11 +317,121 @@ export default function LandingPage({
           </div>
         </div>
 
+        {/* ======================================================== */}
+        {/* NEW: Capstone Research Team & Project Creators Section   */}
+        {/* ======================================================== */}
+        <section className="w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
+                <Users className="w-4 h-4" />
+                <span>Capstone Project Development Team</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Meet the Researchers & Creators
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                PHINMA University of Pangasinan • College of Information Technology Education
+              </p>
+            </div>
+
+            {/* Advisers Badge Box */}
+            <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-3.5 sm:min-w-[280px]">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-1.5">
+                <Award className="w-3.5 h-3.5 text-amber-500" />
+                <span>Capstone Advisers</span>
+              </div>
+              <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-0.5 font-medium">
+                {advisers.map((adv) => (
+                  <li key={adv} className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>{adv}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* 2x2 Member Grid (Cards ready for photo replacement) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+            {teamMembers.map((member) => (
+              <div
+                key={member.name}
+                className={`p-4 rounded-2xl border transition-all flex flex-col items-center text-center group ${
+                  member.highlight
+                    ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                {/* 2x2 Square Photo Slot */}
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-800 shadow-md flex items-center justify-center mb-3 shrink-0 relative">
+                  {member.photo ? (
+                    <img 
+                      src={member.photo} 
+                      alt={member.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-lg sm:text-xl font-black text-slate-600 dark:text-slate-300">
+                      {member.name.split(',')[0].slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  {member.highlight && (
+                    <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" title="Fullstack Lead" />
+                  )}
+                </div>
+
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                  {member.name}
+                </h3>
+                <span className={`text-[10px] mt-1 font-semibold leading-tight ${
+                  member.highlight ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400'
+                }`}>
+                  {member.role}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ======================================================== */}
+        {/* NEW: Contact Us & Technical Inquiries Card              */}
+        {/* ======================================================== */}
+        <section className="w-full bg-linear-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-1 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-emerald-100 text-xs font-semibold backdrop-blur-xs">
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Need Help or Have Concerns?</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight mt-2">
+              Have questions, feedback, or need support?
+            </h3>
+            <p className="text-xs sm:text-sm text-emerald-100 max-w-xl">
+              Reach out directly to our lead developer and research team for system accreditation inquiries, technical bug reports, or landlord accreditation support.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+            <a
+              href="mailto:ropa.cortez.up@phinmaed.com?subject=FABH%20Platform%20Support%20Inquiry"
+              className="inline-flex items-center gap-2 bg-white text-emerald-800 hover:bg-emerald-50 px-5 py-3 rounded-xl font-bold text-xs shadow-md transition hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Mail className="w-4 h-4 text-emerald-700" />
+              ropa.cortez.up@phinmaed.com
+            </a>
+          </div>
+        </section>
+
       </main>
 
-      {/* Minimal Bottom Bar */}
-      <footer className="py-3 px-6 text-center text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors duration-200">
-        FABH Platform • Capstone Research Project • PHINMA University of Pangasinan
+      {/* Modern Enriched Bottom Footer */}
+      <footer className="py-5 px-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors duration-200 text-center space-y-1">
+        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+          FABH: Web-Based Boarding House Finder & Decision Platform for Dagupan City
+        </p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          College of Information Technology Education • PHINMA University of Pangasinan • Capstone Project 2026
+        </p>
       </footer>
 
     </div>
