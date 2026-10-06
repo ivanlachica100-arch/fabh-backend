@@ -9,10 +9,21 @@ import {
   Footprints,
   LogIn,
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  LayoutDashboard,
+  User,
+  Building
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 
-export default function LandingPage({ onStartExploring, onSelectCampus, onOpenAuth }) {
+export default function LandingPage({ 
+  onStartExploring, 
+  onSelectCampus, 
+  onOpenAuth, 
+  user, 
+  onOpenDrawer, 
+  onNavigateLandlord 
+}) {
   const campuses = [
     {
       id: 'upang',
@@ -60,14 +71,35 @@ export default function LandingPage({ onStartExploring, onSelectCampus, onOpenAu
             <Compass className="w-3.5 h-3.5" />
             Explore Map
           </button>
-          <button
-            type="button"
-            onClick={onOpenAuth}
-            className="flex items-center gap-1.5 text-xs font-semibold text-white bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-1.5 rounded-lg shadow-sm border border-transparent dark:border-slate-700 transition cursor-pointer"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            Sign In / Register
-          </button>
+
+          {/* Context-Aware Navbar Actions */}
+          {user ? (
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <button
+                type="button"
+                onClick={onOpenDrawer}
+                className="flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs transition cursor-pointer"
+              >
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="text-xs font-bold max-w-[100px] truncate">{user.name}</span>
+                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {user.role}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-1.5 rounded-lg shadow-sm border border-transparent dark:border-slate-700 transition cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Sign In / Register
+            </button>
+          )}
         </div>
       </header>
 
@@ -106,13 +138,36 @@ export default function LandingPage({ onStartExploring, onSelectCampus, onOpenAu
                 <ArrowRight className="w-4 h-4" />
               </button>
 
-              <button
-                type="button"
-                onClick={onOpenAuth}
-                className="flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-5 py-3 rounded-xl transition cursor-pointer"
-              >
-                Register Account
-              </button>
+              {/* Dynamic Secondary Action */}
+              {user ? (
+                user.role === 'landlord' ? (
+                  <button
+                    type="button"
+                    onClick={onNavigateLandlord}
+                    className="flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 font-semibold text-sm px-5 py-3 rounded-xl transition cursor-pointer"
+                  >
+                    <Building className="w-4 h-4" />
+                    Landlord Portal
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onOpenDrawer}
+                    className="flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-5 py-3 rounded-xl transition cursor-pointer"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    My Account Dashboard
+                  </button>
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold text-sm px-5 py-3 rounded-xl transition cursor-pointer"
+                >
+                  Register Account
+                </button>
+              )}
             </div>
           </div>
 
