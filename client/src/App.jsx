@@ -63,13 +63,13 @@ function AppContent() {
       
       {/* Floating Logout Toast Feedback */}
       {logoutNotice && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 px-4 py-2 rounded-full shadow-2xl border border-slate-700 dark:border-slate-300 text-xs font-semibold flex items-center gap-2 backdrop-blur-md animate-in fade-in slide-from-top-3 duration-200">
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 px-4 py-2 rounded-full shadow-2xl border border-slate-700 dark:border-slate-300 text-xs font-semibold flex items-center gap-2 backdrop-blur-md animate-in fade-in slide-in-from-top-3 duration-200">
           <CheckCircle className="w-4 h-4 text-emerald-500" />
           <span>You have been successfully logged out.</span>
         </div>
       )}
 
-      {/* Top Floating Trigger on Explore & Landlord Views */}
+      {/* Top Floating Trigger on Explore & Landlord Views Only */}
       {currentView !== 'landing' && (
         <header className="absolute top-3.5 right-4 z-[999] flex items-center gap-2">
           {user && <NotificationBell />}
@@ -105,7 +105,7 @@ function AppContent() {
       )}
 
       {/* Main Routed Views */}
-      <div className="w-full h-full overflow-hidden">
+      <div className={`w-full h-full ${currentView === 'landing' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {currentView === 'landing' && (
           <LandingPage 
             onStartExploring={() => setCurrentView('explore')} 

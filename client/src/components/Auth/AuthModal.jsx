@@ -1,7 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
-import { X, Loader2, Lock, Mail, User, CheckCircle2, AlertCircle, KeyRound, ArrowLeft } from 'lucide-react';
+import { 
+  X, 
+  Loader2, 
+  Lock, 
+  Mail, 
+  User, 
+  CheckCircle2, 
+  AlertCircle, 
+  KeyRound, 
+  ArrowLeft,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
   const { login, checkCurrentUser } = useAuth();
@@ -9,6 +21,8 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   // OTP Verification Step: null | 'register_otp' | 'device_otp'
   const [otpMode, setOtpMode] = useState(null);
@@ -17,6 +31,27 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Hydrate remembered email and reset fields whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setError('');
+      setSuccessMsg('');
+      setPassword('');
+      setOtpMode(null);
+      setOtpCode('');
+      setShowPassword(false);
+
+      const savedEmail = localStorage.getItem('fabh_remembered_email');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      } else {
+        setEmail('');
+        setRememberMe(false);
+      }
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -58,11 +93,16 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
 
     if (!validateInputs()) return;
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isRegister && rememberMe) {
+      localStorage.setItem('fabh_remembered_email', cleanEmail);
+    } else if (!isRegister && !rememberMe) {
+      localStorage.removeItem('fabh_remembered_email');
+    }
+
     setLoading(true);
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
-
       if (isRegister) {
         const res = await api.post('/auth/send-register-otp', {
           name: name.trim(),
@@ -73,7 +113,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
         if (res.data.success) {
           setOtpMode('register_otp');
           setError('');
-          setSuccessMsg(''); // Kept clear so verify button is not disabled
+          setSuccessMsg('');
         }
       } else {
         const res = await api.post('/auth/login', {
@@ -128,12 +168,10 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
         otp: otpCode.trim(),
       });
 
-      // Save token returned by backend
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
       }
 
-      // Re-hydrate session state in AuthContext
       if (checkCurrentUser) {
         await checkCurrentUser();
       }
@@ -185,10 +223,14 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
     setError('');
     setSuccessMsg('');
     setName('');
-    setEmail('');
     setPassword('');
     setOtpMode(null);
     setOtpCode('');
+    setShowPassword(false);
+    
+    if (!localStorage.getItem('fabh_remembered_email')) {
+      setEmail('');
+    }
     onClose();
   };
 
@@ -255,7 +297,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
         )}
 
         {otpMode ? (
-          <form onSubmit={handleVerifyOtp} className="mt-4 space-y-4">
+          <form onSubmit={handleVerifyOtp} className="mt-4 space-y-4" autoComplete="off">
             <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 6-Digit Security Code
@@ -267,6 +309,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
                   maxLength={6}
                   required
                   autoFocus
+                  autoComplete="one-time-code"
                   placeholder="123456"
                   value={otpCode}
                   onChange={(e) => {
@@ -302,7 +345,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+          <form onSubmit={handleSubmit} className="mt-4 space-y-3" autoComplete="off">
             {isRegister && (
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
@@ -311,6 +354,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     placeholder="e.g., Juan Dela Cruz"
                     value={name}
                     onChange={(e) => {
@@ -331,6 +375,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   placeholder="student@upang.phinmaed.com"
                   value={email}
                   onChange={(e) => {
@@ -343,13 +388,24 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <div className="relative mt-1">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   minLength={6}
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => {
@@ -360,6 +416,21 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
                 />
               </div>
             </div>
+
+            {/* Remember Me Option (Sign In Only) */}
+            {!isRegister && (
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-emerald-600 border-slate-300 dark:border-slate-700 dark:bg-slate-800 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Remember email</span>
+                </label>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -380,6 +451,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
                 setIsRegister(!isRegister);
                 setError('');
                 setSuccessMsg('');
+                setPassword('');
               }}
               className="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer font-medium"
             >
