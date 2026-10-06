@@ -6,7 +6,7 @@ const createTransporter = () => {
       host: 'smtp.gmail.com',
       port: 587,
       secure: false, // TLS via STARTTLS
-      family: 4,     // Force IPv4 to prevent Render ENETUNREACH IPv6 routing errors
+      family: 4,     // Explicit IPv4 prevents Render ENETUNREACH IPv6 connection failure
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS.replace(/\s+/g, ''), // Strips accidental spaces
@@ -14,7 +14,7 @@ const createTransporter = () => {
       tls: {
         rejectUnauthorized: false,
       },
-      connectionTimeout: 10000, // 10s connection timeout
+      connectionTimeout: 10000,
     });
   }
   return null;
