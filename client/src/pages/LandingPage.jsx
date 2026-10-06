@@ -18,6 +18,14 @@ import {
   HelpCircle
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
+import cortezImg from '../assets/team/cortez.jpg';
+import seninImg from '../assets/team/senin.jpg';
+import subangImg from '../assets/team/subang.jpg';
+import dueyImg from '../assets/team/duey.jpg';
+import villacortaImg from '../assets/team/villacorta.jpg';
+import obleroImg from '../assets/team/oblero.jpg';
+import nerizonImg from '../assets/team/nerizon.jpg';
+import ventanillaImg from '../assets/team/ventanilla.jpg';
 
 export default function LandingPage({ 
   onStartExploring, 
@@ -55,49 +63,49 @@ export default function LandingPage({
     {
       name: 'Cortez, Roan P.',
       role: 'Full-Stack Developer & Lead Architect',
-      photo: null,
+      photo: cortezImg,
       highlight: true,
     },
     {
       name: 'Senin, Ivan M.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: seninImg,
       highlight: false,
     },
     {
       name: 'Subang, Reymart N.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: subangImg,
       highlight: false,
     },
     {
       name: 'Duey, John Paul P.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: dueyImg,
       highlight: false,
     },
     {
       name: 'Villacorta, Ian James R.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: villacortaImg,
       highlight: false,
     },
     {
       name: 'Oblero, Aldrin C.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: obleroImg,
       highlight: false,
     },
     {
       name: 'Nerizon, Sebastian U.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: nerizonImg,
       highlight: false,
     },
     {
       name: 'Ventanilla, Andrei Demitri T.',
       role: 'Capstone Researcher & Contributor',
-      photo: null,
+      photo: ventanillaImg,
       highlight: false,
     },
   ];
