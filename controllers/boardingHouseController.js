@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const BoardingHouse = require('../models/BoardingHouse');
+const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const DAGUPAN_CAMPUSES = require('../config/landmarks');
 const { calculateTOPSIS } = require('../utils/topsis');
 
@@ -137,7 +139,7 @@ const getListings = async (req, res) => {
 
     if (maxPrice) {
       pipeline.push({
-        $match: { monthlyRent: { $lte: parseFloat(maxPrice) } },
+        $match: { monthlyRent: {$lte: parseFloat(maxPrice) } },
       });
     }
 
@@ -216,7 +218,7 @@ const updateListing = async (req, res) => {
   }
 };
 
-// @desc    Delete a Boarding House listing
+// @desc    Delete a Boarding House listing (Owner Landlord or Admin)
 // @route   DELETE /api/boarding-houses/:id
 // @access  Private (Owner Landlord / Admin)
 const deleteListing = async (req, res) => {
@@ -227,17 +229,45 @@ const deleteListing = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Listing not found' });
     }
 
-    if (listing.landlord.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    const isOwner = listing.landlord.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    // Must be either the property owner or an administrator
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this listing',
       });
     }
 
+    const title = listing.title;
+    const propertyId = listing._id;
+    const landlordId = listing.landlord;
+
     await listing.deleteOne();
 
-    res.status(200).json({ success: true, message: 'Listing deleted successfully' });
+    // Clean up any student bookmarks referencing this deleted boarding house
+    await User.updateMany(
+      { savedBoardingHouses: propertyId },
+      { $pull: { savedBoardingHouses: propertyId } }
+    );
+
+    // Record to AuditLog
+    await AuditLog.create({
+      action: isAdmin && !isOwner ? 'ADMIN_DELETE_PROPERTY' : 'LANDLORD_DELETE_PROPERTY',
+      user: req.user._id,
+      userEmail: req.user.email,
+      details: `${isAdmin && !isOwner ? 'Admin' : 'Landlord'} deleted boarding house: "${title}" (ID: ${propertyId}) originally owned by ${landlordId}`,
+      ipAddress: req.ip || req.connection?.remoteAddress,
+      userAgent: req.get('User-Agent') || 'unknown',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Listing deleted successfully',
+    });
   } catch (error) {
+    console.error('deleteListing error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -6,12 +6,12 @@ const CRITERIA_CONFIG = [
 ];
 
 /**
- * Calculates TOPSIS score with optional target budget weighting.
+ * Calculates TOPSIS score with optional target budget weighting and explainability insights.
  * @param {Array} houses - Array of boarding house objects
- * @param {Array} weights - Criteria weights [rent, distance, rating, amenities] (default: [0.3, 0.3, 0.2, 0.2])
+ * @param {Array} weights - Criteria weights [rent, distance, rating, amenities] (default: [0.25, 0.25, 0.25, 0.25])
  * @param {number|null} maxBudget - Optional student max budget constraint
  */
-function calculateTOPSIS(houses, weights = [0.3, 0.3, 0.2, 0.2], maxBudget = null) {
+function calculateTOPSIS(houses, weights = [0.25, 0.25, 0.25, 0.25], maxBudget = null) {
   if (!houses || houses.length < 2) {
     throw new Error('TOPSIS requires at least 2 boarding houses to compare.');
   }
@@ -61,7 +61,7 @@ function calculateTOPSIS(houses, weights = [0.3, 0.3, 0.2, 0.2], maxBudget = nul
     row.map((val, j) => val * weights[j])
   );
 
-  // Determine ideal best (A+) and ideal worst (A-) solutions
+  // Determine ideal best (V+) and ideal worst (V-) solutions
   const idealBest = [];
   const idealWorst = [];
 
@@ -97,10 +97,13 @@ function calculateTOPSIS(houses, weights = [0.3, 0.3, 0.2, 0.2], maxBudget = nul
 
     return {
       houseId: house._id,
-      title: house.title,
+      title: house.title || house.name,
       monthlyRent: house.monthlyRent,
-      distanceToCampusInMeters: house.distanceToCampusInMeters,
-      averageRating: house.averageRating,
+      distanceToCampusInMeters: Math.round(house.distanceToCampusInMeters || 0),
+      averageRating: house.averageRating ? Number(house.averageRating.toFixed(1)) : 0,
+      amenitiesCount: Object.values(house.amenities || {}).filter(Boolean).length,
+      separationBest: parseFloat(sPlus.toFixed(4)),
+      separationWorst: parseFloat(sMinus.toFixed(4)),
       topsisScore: parseFloat(score.toFixed(4)),
       isOverBudget,
     };
@@ -109,10 +112,41 @@ function calculateTOPSIS(houses, weights = [0.3, 0.3, 0.2, 0.2], maxBudget = nul
   // Rank by topsisScore descending
   results.sort((a, b) => b.topsisScore - a.topsisScore);
 
-  return results.map((item, index) => ({
-    rank: index + 1,
-    ...item,
-  }));
+  // Averages for comparative explainability
+  const avgRent = results.reduce((acc, r) => acc + r.monthlyRent, 0) / results.length;
+  const minDistance = Math.min(...results.map((r) => r.distanceToCampusInMeters));
+  const minPrice = Math.min(...results.map((r) => r.monthlyRent));
+  const maxRating = Math.max(...results.map((r) => r.averageRating));
+
+  return results.map((item, index) => {
+    let badge = 'Balanced Candidate';
+    let rationale = '';
+
+    if (index === 0) {
+      badge = 'Best Overall Match';
+      const rentDiff = Math.round(avgRent - item.monthlyRent);
+      const savingsText = rentDiff > 0 ? `₱${rentDiff.toLocaleString()} below group average` : `within target range`;
+      rationale = `Highest multi-criteria closeness (${(item.topsisScore * 100).toFixed(1)}%). Balanced at ${item.distanceToCampusInMeters}m from campus and ${savingsText}.`;
+    } else if (item.monthlyRent === minPrice) {
+      badge = 'Best Value (Lowest Rent)';
+      rationale = `Most economical option at ₱${item.monthlyRent.toLocaleString()}/month.`;
+    } else if (item.distanceToCampusInMeters === minDistance) {
+      badge = 'Closest to Campus';
+      rationale = `Shortest walking commute at only ${item.distanceToCampusInMeters}m to the campus gates.`;
+    } else if (item.averageRating === maxRating && maxRating > 0) {
+      badge = 'Highest Student Rated';
+      rationale = `Top community satisfaction score (${item.averageRating}★ average).`;
+    } else {
+      rationale = `Scored ${(item.topsisScore * 100).toFixed(1)}% compatibility across price, distance, and inclusions.`;
+    }
+
+    return {
+      rank: index + 1,
+      badge,
+      rationale,
+      ...item,
+    };
+  });
 }
 
 module.exports = { calculateTOPSIS };

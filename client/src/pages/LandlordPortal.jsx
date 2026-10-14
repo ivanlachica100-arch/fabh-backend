@@ -13,7 +13,8 @@ import {
   LocateFixed, 
   AlertCircle,
   Image as ImageIcon,
-  UploadCloud
+  UploadCloud,
+  Check
 } from 'lucide-react';
 import { DAGUPAN_CENTER } from '../constants/landmarks';
 import 'leaflet/dist/leaflet.css';
@@ -36,6 +37,7 @@ export default function LandlordPortal({ onBackToExplore }) {
   const [deletingId, setDeletingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [autoFilledStatus, setAutoFilledStatus] = useState('');
   
   // Image Upload State
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -92,14 +94,84 @@ export default function LandlordPortal({ onBackToExplore }) {
       return;
     }
     setGettingLocation(true);
+    setAutoFilledStatus('');
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
         if (latitude < 15.7 || latitude > 16.4 || longitude < 119.7 || longitude > 120.9) {
           alert('GPS detected coordinates outside Dagupan/Pangasinan. Please pin manually.');
         }
+
+        // Update coordinates
         setFormData((prev) => ({ ...prev, lat: latitude, lng: longitude }));
-        setGettingLocation(false);
+
+        // Reverse Geocoding with OpenStreetMap Nominatim
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
+          );
+          const data = await res.json();
+
+          if (data && data.address) {
+            const addr = data.address;
+            const detectedStreet = 
+              addr.road || 
+              addr.pedestrian || 
+              addr.street || 
+              addr.residential || 
+              addr.suburb || 
+              '';
+
+            const detectedBarangayCandidate = (
+              addr.village || 
+              addr.neighbourhood || 
+              addr.quarter || 
+              addr.suburb || 
+              ''
+            ).toLowerCase();
+
+            // Match against Dagupan predefined barangay options
+            const barangayOptions = [
+              'Poblacion Oeste',
+              'Tapuac',
+              'Malued',
+              'Lucao',
+              'Pantol',
+              'Downtown',
+              'Mayombo',
+              'Herrero-Perez',
+            ];
+
+            const matchedBarangay = barangayOptions.find((bg) =>
+              detectedBarangayCandidate.includes(bg.toLowerCase())
+            );
+
+            setFormData((prev) => ({
+              ...prev,
+              street: detectedStreet || prev.street,
+              barangay: matchedBarangay || prev.barangay,
+            }));
+
+            // Clear any validation errors on street
+            if (detectedStreet) {
+              setErrors((prev) => {
+                const next = { ...prev };
+                delete next.street;
+                return next;
+              });
+            }
+
+            setAutoFilledStatus(detectedStreet ? 'Address & coordinates auto-filled!' : 'Location pinned on map!');
+            setTimeout(() => setAutoFilledStatus(''), 4000);
+          }
+        } catch (geoErr) {
+          console.warn('Reverse geocoding lookup failed:', geoErr);
+          setAutoFilledStatus('Coordinates pinned!');
+          setTimeout(() => setAutoFilledStatus(''), 3000);
+        } finally {
+          setGettingLocation(false);
+        }
       },
       (err) => {
         console.error('GPS error:', err);
@@ -276,6 +348,7 @@ export default function LandlordPortal({ onBackToExplore }) {
       setSelectedFiles([]);
       setPreviewUrls([]);
       setErrors({});
+      setAutoFilledStatus('');
       alert('Boarding house published successfully with photos!');
     } catch (err) {
       console.error('Create listing error:', err);
@@ -329,6 +402,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                   setSubmitError('');
                   setSelectedFiles([]);
                   setPreviewUrls([]);
+                  setAutoFilledStatus('');
                 }}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-semibold cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
@@ -635,19 +709,27 @@ export default function LandlordPortal({ onBackToExplore }) {
                     Geospatial Pin (Required for Distance Engine)
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={gettingLocation}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg transition cursor-pointer"
-                  >
-                    {gettingLocation ? (
-                      <Loader2 className="w-3 h-3 animate-spin text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <LocateFixed className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <div className="flex items-center gap-2">
+                    {autoFilledStatus && (
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 animate-in fade-in">
+                        <Check className="w-3 h-3" />
+                        {autoFilledStatus}
+                      </span>
                     )}
-                    {gettingLocation ? 'Acquiring GPS...' : 'Auto-Pin My Current Location'}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      disabled={gettingLocation}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                    >
+                      {gettingLocation ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <LocateFixed className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      )}
+                      {gettingLocation ? 'Acquiring GPS & Address...' : 'Auto-Pin My Current Location'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="h-44 w-full rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 relative z-0">
@@ -673,6 +755,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                     setErrors({});
                     setSelectedFiles([]);
                     setPreviewUrls([]);
+                    setAutoFilledStatus('');
                   }}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-lg transition cursor-pointer"
                 >

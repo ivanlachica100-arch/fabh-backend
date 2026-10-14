@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { 
   X, ChevronLeft, ChevronRight, Phone, MessageSquare, 
   Send, ExternalLink, MapPin, ShieldCheck, Star, 
-  Loader2, MessageCircle, UserCheck 
+  Loader2, MessageCircle, UserCheck, Trash2 
 } from 'lucide-react';
 
-export default function DormDetailsModal({ isOpen, onClose, house, selectedCampus }) {
+export default function DormDetailsModal({ isOpen, onClose, house, selectedCampus, onRefresh }) {
+  const { user } = useAuth();
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [reviewsError, setReviewsError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const houseId = house?._id || house?.id;
 
@@ -62,6 +65,12 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
   const distance = house.distanceToCampusInMeters ?? house.distance;
   const campusName = selectedCampus?.name ? selectedCampus.name.split(' ')[0] : 'Campus';
 
+  // Ownership / Admin privilege detection
+  const landlordId = typeof house.landlord === 'object' ? house.landlord?._id : house.landlord;
+  const isOwner = user && landlordId && user._id?.toString() === landlordId.toString();
+  const isAdmin = user && user.role === 'admin';
+  const canDelete = isOwner || isAdmin;
+
   // Calculate live average star score from fetched reviews
   const averageRating = reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
@@ -77,6 +86,27 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
 
   const prevImage = () => {
     setCurrentImageIdx((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleDeleteListing = async () => {
+    const confirmationText = isAdmin && !isOwner
+      ? `[ADMIN MODERATION] Are you sure you want to permanently delete "${houseTitle}"? This will log an audit event and purge all associated student bookmarks.`
+      : `Are you sure you want to delete your boarding house listing "${houseTitle}"?`;
+
+    if (!window.confirm(confirmationText)) return;
+
+    try {
+      setIsDeleting(true);
+      await api.delete(`/boarding-houses/${houseId}`);
+      alert(isAdmin && !isOwner ? 'Listing removed by administrator.' : 'Your listing has been removed.');
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert(err.response?.data?.message || 'Failed to delete listing.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const renderStars = (rating) => {
@@ -354,6 +384,26 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
               </div>
             )}
           </div>
+
+          {/* Landlord Owner or Admin Delete Action */}
+          {canDelete && (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={handleDeleteListing}
+                disabled={isDeleting}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {isAdmin && !isOwner ? 'Delete Listing as Administrator (Moderation)' : 'Delete My Listing'}
+              </button>
+            </div>
+          )}
+
         </div>
 
         {/* Footer */}

@@ -3,17 +3,27 @@ import api from '../api/client';
 import { 
   X, 
   Sparkles, 
-  ArrowRight, 
   Check, 
   Scale, 
   DollarSign, 
   Footprints, 
   Award,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Trophy,
+  MapPin,
+  Star,
+  CheckCircle2
 } from 'lucide-react';
 
-export default function CompareDrawer({ isOpen, onClose, selectedHouses }) {
+const PRIORITY_WEIGHTS = {
+  balanced: [0.25, 0.25, 0.25, 0.25],
+  budget: [0.45, 0.20, 0.15, 0.20],
+  distance: [0.15, 0.50, 0.15, 0.20],
+  quality: [0.15, 0.15, 0.40, 0.30],
+};
+
+export default function CompareDrawer({ isOpen, onClose, selectedHouses, selectedCampus }) {
   const [priority, setPriority] = useState('balanced');
   const [targetBudget, setTargetBudget] = useState('');
   const [computing, setComputing] = useState(false);
@@ -31,13 +41,18 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses }) {
     setComputing(true);
     setError('');
     try {
-      const res = await api.post('/boarding-houses/compare-topsis', {
-        houseIds: selectedHouses.map((h) => h._id),
-        priority,
-        targetBudget: targetBudget ? Number(targetBudget) : undefined,
+      const res = await api.post('/boarding-houses/compare', {
+        houseIds: selectedHouses.map((h) => h._id || h.id),
+        campus: selectedCampus?.code || 'UPANG',
+        weights: PRIORITY_WEIGHTS[priority] || [0.25, 0.25, 0.25, 0.25],
+        maxBudget: targetBudget ? Number(targetBudget) : undefined,
       });
 
-      setResults(res.data.data || res.data);
+      if (res.data.success) {
+        setResults(res.data);
+      } else {
+        setError(res.data.message || 'Comparison failed.');
+      }
     } catch (err) {
       console.error('TOPSIS computation error:', err);
       setError(err.response?.data?.message || 'Could not complete quantitative TOPSIS ranking.');
@@ -102,7 +117,7 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses }) {
               <div className="space-y-1.5">
                 {selectedHouses.map((house) => (
                   <div 
-                    key={house._id} 
+                    key={house._id || house.id} 
                     className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs"
                   >
                     <span className="font-semibold truncate max-w-[240px] text-slate-800 dark:text-slate-200">
@@ -151,7 +166,7 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses }) {
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
-                { id: 'balanced', label: 'Balanced', desc: 'Equal priority across price, distance, rating', icon: Scale },
+                { id: 'balanced', label: 'Balanced', desc: 'Equal weighting across price, distance, rating', icon: Scale },
                 { id: 'budget', label: 'Budget First', desc: 'Prioritizes lowest monthly rental costs', icon: DollarSign },
                 { id: 'distance', label: 'Walking Distance', desc: 'Prioritizes closest proximity to campus', icon: Footprints },
                 { id: 'quality', label: 'Quality & Comfort', desc: 'Prioritizes reviews and amenities', icon: Award },
@@ -180,35 +195,101 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses }) {
             </div>
           </div>
 
-          {/* TOPSIS Results Display */}
-          {results && results.rankings && (
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
-                Ranked TOPSIS Results
-              </span>
-              {results.rankings.map((ranked, idx) => (
-                <div 
-                  key={ranked.houseId || idx}
-                  className={`p-3 rounded-xl border flex items-center justify-between text-xs ${
-                    idx === 0 
-                      ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-slate-900 dark:text-white' 
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                      idx === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                    }`}>
-                      #{idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-bold text-slate-900 dark:text-white">{ranked.name}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Score: {(ranked.score * 100).toFixed(1)}% match</p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-emerald-700 dark:text-emerald-400">₱{ranked.price?.toLocaleString()}</span>
+          {/* Upgraded TOPSIS Results Display with Algorithmic Explainability */}
+          {results && Array.isArray(results.data) && (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Quantitative TOPSIS Rankings
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {results.campus || 'Selected Campus'}
+                </span>
+              </div>
+
+              {results.recommendation && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2">
+                  <Trophy className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="leading-snug font-medium">{results.recommendation}</span>
                 </div>
-              ))}
+              )}
+
+              <div className="space-y-2.5">
+                {results.data.map((ranked, idx) => {
+                  const isTop = idx === 0;
+                  return (
+                    <div 
+                      key={ranked.houseId || idx}
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        isTop 
+                          ? 'border-emerald-500/60 bg-emerald-50/50 dark:bg-emerald-950/30 shadow-xs ring-1 ring-emerald-500/20' 
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
+                            isTop 
+                              ? 'bg-emerald-600 text-white shadow-xs' 
+                              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}>
+                            #{ranked.rank || idx + 1}
+                          </span>
+                          <div>
+                            <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                              {ranked.title}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                                Closeness: {(ranked.topsisScore * 100).toFixed(1)}%
+                              </span>
+                              <span className="text-[10px] text-slate-400">•</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                Rent: ₱{ranked.monthlyRent?.toLocaleString()}/mo
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {ranked.badge && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                            isTop 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                              : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                          }`}>
+                            {ranked.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* AI Explainability Rationale */}
+                      {ranked.rationale && (
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-850/80 p-2 rounded-lg border border-slate-150 dark:border-slate-750">
+                          {ranked.rationale}
+                        </p>
+                      )}
+
+                      {/* Criteria Breakdown Badges */}
+                      <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          {ranked.distanceToCampusInMeters}m walk
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          {ranked.averageRating > 0 ? `${ranked.averageRating}★` : 'Unrated'}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          {ranked.amenitiesCount} amenities
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
