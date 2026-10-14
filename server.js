@@ -10,6 +10,8 @@ dotenv.config();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 // 1. Native Bulletproof CORS & Preflight Handler
 app.use((req, res, next) => {
   const allowedOrigins = [
