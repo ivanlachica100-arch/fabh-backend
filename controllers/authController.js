@@ -206,7 +206,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// @desc    Adaptive Login with Device MFA Challenge
+// @desc    Adaptive Login with Immediate Ban Enforcement & Device MFA Challenge
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
   try {
@@ -228,10 +228,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
+    // STRICT CHECK: Block deactivated accounts immediately
     if (user.isDeactivated) {
       return res.status(403).json({
         success: false,
-        message: `Your account has been deactivated. Reason: ${user.deactivationReason || 'Administrative decision.'}`,
+        message: `Your account has been deactivated by administration. Reason: "${user.deactivationReason || 'Violations of terms.'}"`,
       });
     }
 
@@ -297,7 +298,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// @desc    Verify New Device OTP Challenge
+// @desc    Verify New Device OTP Challenge with Deactivation Guard
 // @route   POST /api/auth/verify-device-otp
 exports.verifyDeviceOtp = async (req, res) => {
   try {
@@ -312,6 +313,14 @@ exports.verifyDeviceOtp = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // STRICT CHECK: Block deactivated accounts even after solving device challenge
+    if (user.isDeactivated) {
+      return res.status(403).json({
+        success: false,
+        message: `Your account has been deactivated. Reason: "${user.deactivationReason || 'Administrative decision.'}"`,
+      });
     }
 
     if (!user.otpExpires || user.otpExpires < new Date()) {
@@ -366,6 +375,13 @@ exports.forgotPasswordOtp = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No registered account found with this email.' });
     }
 
+    if (user.isDeactivated) {
+      return res.status(403).json({
+        success: false,
+        message: 'This account has been deactivated. Please contact support.',
+      });
+    }
+
     const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const salt = await bcrypt.genSalt(10);
     user.otpCode = await bcrypt.hash(rawOtp, salt);
@@ -412,6 +428,13 @@ exports.resetForgotPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
+    if (user.isDeactivated) {
+      return res.status(403).json({
+        success: false,
+        message: 'This account is deactivated. Password reset unavailable.',
+      });
+    }
+
     if (!user.otpExpires || user.otpExpires < new Date()) {
       return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
     }
@@ -452,6 +475,10 @@ exports.sendPasswordOtp = async (req, res) => {
     const user = await User.findById(req.user.id || req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User session not found.' });
+    }
+
+    if (user.isDeactivated) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated.' });
     }
 
     const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -498,6 +525,10 @@ exports.updatePassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
+    if (user.isDeactivated) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated.' });
+    }
+
     const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
       return res.status(401).json({
@@ -542,12 +573,22 @@ exports.updatePassword = async (req, res) => {
 };
 
 // @route   GET /api/auth/me
+// Checks active session and confirms the account has not been deactivated
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User session not found' });
     }
+
+    if (user.isDeactivated) {
+      return res.status(403).json({
+        success: false,
+        isDeactivated: true,
+        message: `Your account has been deactivated. Reason: ${user.deactivationReason || 'Administrative decision.'}`,
+      });
+    }
+
     res.status(200).json({
       success: true,
       user: {
@@ -555,6 +596,7 @@ exports.getMe = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isDeactivated: user.isDeactivated,
         landlordApplication: user.landlordApplication || { status: 'none' },
       },
     });
@@ -570,7 +612,7 @@ exports.logout = (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
 
   res.cookie('token', '', {
-    expires: new Date(0), // Set to 1970 to force browser eviction
+    expires: new Date(0),
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
@@ -613,6 +655,10 @@ exports.applyLandlord = async (req, res) => {
     const user = await User.findById(req.user._id || req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isDeactivated) {
+      return res.status(403).json({ success: false, message: 'Deactivated accounts cannot apply.' });
     }
 
     user.landlordApplication = {
@@ -736,15 +782,17 @@ exports.updateDetails = async (req, res) => {
       });
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id || req.user._id,
-      { name: name.trim() },
-      { new: true, runValidators: true }
-    );
-
+    const user = await User.findById(req.user.id || req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    if (user.isDeactivated) {
+      return res.status(403).json({ success: false, message: 'Deactivated accounts cannot update details.' });
+    }
+
+    user.name = name.trim();
+    await user.save();
 
     await logActivity({
       action: 'USER_PROFILE_UPDATE',

@@ -30,10 +30,23 @@ const UserSchema = new mongoose.Schema(
       enum: ['student', 'landlord', 'admin'],
       default: 'student',
     },
+    // Account Moderation & Ban Enforcement
+    isDeactivated: {
+      type: Boolean,
+      default: false,
+    },
+    deactivationReason: {
+      type: String,
+      default: null,
+    },
+    deactivatedAt: {
+      type: Date,
+      default: null,
+    },
     // Verification & Adaptive Device MFA Fields
     isEmailVerified: {
       type: Boolean,
-      default: true, // Existing users and admin default to verified automatically
+      default: true,
     },
     otpCode: {
       type: String,
@@ -99,7 +112,7 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash password before saving (Async style without next callback)
+// Hash password before saving
 UserSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   const salt = await bcrypt.genSalt(10);
