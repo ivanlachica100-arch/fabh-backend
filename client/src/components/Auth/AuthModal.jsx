@@ -12,8 +12,7 @@ import {
   KeyRound, 
   ArrowLeft,
   Eye,
-  EyeOff,
-  HelpCircle
+  EyeOff
 } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
@@ -22,12 +21,13 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
   // Modes: 'signin' | 'register' | 'forgot_email' | 'forgot_reset'
   const [viewMode, setViewMode] = useState('signin');
   
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   
   // OTP Verification for signin/register: null | 'register_otp' | 'device_otp'
   const [otpMode, setOtpMode] = useState(null);
@@ -49,6 +49,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
       setOtpCode('');
       setShowPassword(false);
       setIsRateLimited(false);
+      setPrivacyConsent(false);
       setViewMode('signin');
 
       const savedEmail = localStorage.getItem('fabh_remembered_email');
@@ -81,15 +82,20 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
     }
 
     if (viewMode === 'register') {
-      const cleanName = name.trim();
-      const nameRegex = /^[a-zA-Z\s.-]{2,50}$/;
+      const cleanUsername = username.trim();
+      const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
 
-      if (!cleanName) {
-        setError('Full name is required.');
+      if (!cleanUsername) {
+        setError('Username is required.');
         return false;
       }
-      if (!nameRegex.test(cleanName)) {
-        setError('Name can only contain letters, spaces, hyphens, and periods.');
+      if (!usernameRegex.test(cleanUsername)) {
+        setError('Username must be 3-30 characters (letters, numbers, hyphens, periods, or underscores).');
+        return false;
+      }
+
+      if (!privacyConsent) {
+        setError('You must acknowledge and accept the Terms and Data Privacy Policy to proceed.');
         return false;
       }
     }
@@ -116,8 +122,9 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
 
     try {
       if (viewMode === 'register') {
+        // Dispatches username as "name" so backend controller and MongoDB schema function seamlessly
         const res = await api.post('/auth/send-register-otp', {
-          name: name.trim(),
+          name: username.trim(),
           email: cleanEmail,
           password,
         });
@@ -218,7 +225,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
       const cleanEmail = email.trim().toLowerCase();
       if (otpMode === 'register_otp') {
         await api.post('/auth/send-register-otp', {
-          name: name.trim(),
+          name: username.trim(),
           email: cleanEmail,
           password,
         });
@@ -236,7 +243,6 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
     }
   };
 
-  // Step 1: Send OTP for Forgot Password
   const handleRequestPasswordResetOtp = async (e) => {
     e.preventDefault();
     setError('');
@@ -265,7 +271,6 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
     }
   };
 
-  // Step 2: Complete Password Reset with OTP
   const handleResetPasswordWithOtp = async (e) => {
     e.preventDefault();
     setError('');
@@ -310,7 +315,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
   const handleModalClose = () => {
     setError('');
     setSuccessMsg('');
-    setName('');
+    setUsername('');
     setPassword('');
     setNewPassword('');
     setOtpMode(null);
@@ -318,6 +323,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
     setShowPassword(false);
     setViewMode('signin');
     setIsRateLimited(false);
+    setPrivacyConsent(false);
     
     if (!localStorage.getItem('fabh_remembered_email')) {
       setEmail('');
@@ -495,7 +501,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
           </form>
         )}
 
-        {/* VIEW 2: Forgot Password - Step 1 (Request OTP via Email) */}
+        {/* VIEW 2: Forgot Password - Step 1 */}
         {!otpMode && viewMode === 'forgot_email' && (
           <form onSubmit={handleRequestPasswordResetOtp} className="mt-4 space-y-3" autoComplete="off">
             <div>
@@ -529,7 +535,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
           </form>
         )}
 
-        {/* VIEW 3: Forgot Password - Step 2 (Verify OTP & Set New Password) */}
+        {/* VIEW 3: Forgot Password - Step 2 */}
         {!otpMode && viewMode === 'forgot_reset' && (
           <form onSubmit={handleResetPasswordWithOtp} className="mt-4 space-y-3" autoComplete="off">
             <div>
@@ -601,23 +607,23 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
           <form onSubmit={handleSubmit} className="mt-4 space-y-3" autoComplete="off">
             {viewMode === 'register' && (
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Username</label>
                 <div className="relative mt-1">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
                     required
                     autoComplete="off"
-                    placeholder="e.g., Juan Dela Cruz"
-                    value={name}
+                    placeholder="e.g., juandelacruz"
+                    value={username}
                     onChange={(e) => {
-                      setName(e.target.value);
+                      setUsername(e.target.value);
                       if (error) setError('');
                     }}
                     className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Letters and standard spaces only</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">3-30 characters (letters, numbers, underscores)</p>
               </div>
             )}
 
@@ -670,6 +676,27 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
               </div>
             </div>
 
+            {/* MANDATORY CONSENT & DATA PRIVACY COMPLIANCE (Item 1 from Review PDF) */}
+            {viewMode === 'register' && (
+              <div className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-750 bg-slate-50/70 dark:bg-slate-800/60 mt-1">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={privacyConsent}
+                    onChange={(e) => {
+                      setPrivacyConsent(e.target.checked);
+                      if (error) setError('');
+                    }}
+                    className="mt-0.5 w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 dark:bg-slate-700 cursor-pointer shrink-0"
+                  />
+                  <span className="text-[10px] leading-tight text-slate-600 dark:text-slate-400 select-none">
+                    I agree to the <span className="font-semibold text-emerald-600 dark:text-emerald-400 underline">Terms and Conditions</span> and provide consent under the <span className="font-semibold text-slate-800 dark:text-slate-200">Data Privacy Act of 2012</span> for FABH to store and process my registration details for authentication and boarding house discovery.
+                  </span>
+                </label>
+              </div>
+            )}
+
             {/* Remember Email & Forgot Password Links */}
             {viewMode === 'signin' && (
               <div className="flex items-center justify-between pt-0.5">
@@ -699,7 +726,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (viewMode === 'register' && !privacyConsent)}
               className="w-full py-2.5 mt-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-semibold text-xs rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -718,6 +745,7 @@ export default function AuthModal({ isOpen, onClose, onSuccessLogin }) {
                 setError('');
                 setSuccessMsg('');
                 setPassword('');
+                setPrivacyConsent(false);
               }}
               className="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer font-medium"
             >
