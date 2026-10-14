@@ -10,7 +10,8 @@ import {
   Compass,
   Home,
   Settings,
-  Users
+  Users,
+  BarChart3
 } from 'lucide-react';
 
 export default function UserAccountDrawer({
@@ -189,10 +190,28 @@ export default function UserAccountDrawer({
 
             {/* Admin Management Section */}
             {user?.role === 'admin' && (
-              <div className="pt-3 space-y-1">
+              <div className="pt-3 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2 mb-1">
                   Admin Tools
                 </p>
+
+                {/* Platform Analytics & Demand Dashboard */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenAdminReview();
+                    onClose();
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart3 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Platform Analytics & Demand</span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-300 px-1.5 py-0.5 rounded">
+                    Live
+                  </span>
+                </button>
 
                 {/* Applications */}
                 <button
