@@ -2,8 +2,8 @@ const nodemailer = require('nodemailer');
 
 const createTransporter = () => {
   const host = process.env.BREVO_HOST || 'smtp-relay.brevo.com';
-  // Default to 2525 or 587 (2525 bypasses cloud host port blocks)
-  const port = parseInt(process.env.BREVO_PORT || '587', 10);
+  // Defaults to 2525 to avoid port 587 cloud firewall blocks
+  const port = parseInt(process.env.BREVO_PORT || '2525', 10);
   const user = (process.env.BREVO_USER || process.env.EMAIL_USER || '').trim();
   const pass = (process.env.BREVO_PASS || process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
@@ -11,8 +11,8 @@ const createTransporter = () => {
     return nodemailer.createTransport({
       host,
       port,
-      secure: port === 465, // true for 465, false for 587/2525
-      family: 4,            // Explicit IPv4 prevents Render ENETUNREACH IPv6 failures
+      secure: port === 465, // true for port 465 SSL, false for 2525/587 STARTTLS
+      family: 4,            // Explicit IPv4 prevents Render ENETUNREACH failures
       auth: {
         user,
         pass,
@@ -20,7 +20,7 @@ const createTransporter = () => {
       tls: {
         rejectUnauthorized: false,
       },
-      connectionTimeout: 15000, // 15s to allow cloud network handshakes
+      connectionTimeout: 15000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
     });
@@ -37,7 +37,7 @@ const sendOtpEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     'support@fabh.com'
   ).trim();
 
-  // Fallback: If SMTP credentials are not present, log code to console
+  // Console fallback if SMTP keys are completely missing
   if (!transporter) {
     console.log(`\n==================================================`);
     console.log(`[FABH DEV MAILER FALLBACK - NO SMTP KEYS SET]`);
@@ -74,7 +74,6 @@ const sendOtpEmail = async (toEmail, otpCode, purpose = 'Verification') => {
     return true;
   } catch (error) {
     console.error('Brevo SMTP dispatch error:', error.message);
-    // Print fallback code into Render logs so you never fail a demo or defense
     console.log(`[FALLBACK CODE ON SMTP ERROR]: ${otpCode} for ${toEmail}`);
     return false;
   }
