@@ -22,8 +22,9 @@ export default function UserAccountDrawer({
   setCurrentView,
   onOpenSettings,
   onOpenAdminReview,
+  onOpenAdminAnalytics,
   onOpenAdminLogs,
-  onOpenAdminUsers, // Added prop for moderation modal
+  onOpenAdminUsers,
   onOpenApplyLandlord,
   onRequestLogout
 }) {
@@ -195,11 +196,11 @@ export default function UserAccountDrawer({
                   Admin Tools
                 </p>
 
-                {/* Platform Analytics & Demand Dashboard */}
+                {/* 1. Dedicated Analytics Button */}
                 <button
                   type="button"
                   onClick={() => {
-                    onOpenAdminReview();
+                    if (onOpenAdminAnalytics) onOpenAdminAnalytics();
                     onClose();
                   }}
                   className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
@@ -213,7 +214,7 @@ export default function UserAccountDrawer({
                   </span>
                 </button>
 
-                {/* Applications */}
+                {/* 2. Dedicated Applications Review Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -229,7 +230,7 @@ export default function UserAccountDrawer({
                   <ChevronRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 </button>
 
-                {/* User Accounts Moderation */}
+                {/* 3. Moderate Users */}
                 <button
                   type="button"
                   onClick={() => {
@@ -245,7 +246,7 @@ export default function UserAccountDrawer({
                   <ChevronRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                 </button>
 
-                {/* Audit Logs */}
+                {/* 4. Audit Logs */}
                 <button
                   type="button"
                   onClick={() => {

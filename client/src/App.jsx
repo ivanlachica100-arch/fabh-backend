@@ -6,6 +6,7 @@ import LandlordPortal from './pages/LandlordPortal';
 import AuthModal from './components/Auth/AuthModal';
 import ApplyLandlordModal from './components/Auth/ApplyLandlordModal';
 import AdminApplicationsModal from './components/Admin/AdminApplicationsModal';
+import AdminAnalyticsModal from './components/Admin/AdminAnalyticsModal';
 import AdminAuditLogsModal from './components/Admin/AdminAuditLogsModal';
 import AdminUsersModal from './components/Admin/AdminUsersModal';
 import UserAccountDrawer from './components/UserAccountDrawer';
@@ -18,6 +19,7 @@ function AppContent() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isApplyLandlordOpen, setIsApplyLandlordOpen] = useState(false);
   const [isAdminReviewOpen, setIsAdminReviewOpen] = useState(false);
+  const [isAdminAnalyticsOpen, setIsAdminAnalyticsOpen] = useState(false);
   const [isAdminLogsOpen, setIsAdminLogsOpen] = useState(false);
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -134,6 +136,7 @@ function AppContent() {
         setCurrentView={setCurrentView}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenAdminReview={() => setIsAdminReviewOpen(true)}
+        onOpenAdminAnalytics={() => setIsAdminAnalyticsOpen(true)}
         onOpenAdminLogs={() => setIsAdminLogsOpen(true)}
         onOpenAdminUsers={() => setIsAdminUsersOpen(true)}
         onOpenApplyLandlord={() => setIsApplyLandlordOpen(true)}
@@ -193,10 +196,19 @@ function AppContent() {
         isOpen={isApplyLandlordOpen}
         onClose={() => setIsApplyLandlordOpen(false)}
       />
+
+      {/* Dedicated Landlord Applications Review Queue */}
       <AdminApplicationsModal
         isOpen={isAdminReviewOpen}
         onClose={() => setIsAdminReviewOpen(false)}
       />
+
+      {/* Dedicated Platform Analytics & Demand Dashboard */}
+      <AdminAnalyticsModal
+        isOpen={isAdminAnalyticsOpen}
+        onClose={() => setIsAdminAnalyticsOpen(false)}
+      />
+
       <AdminAuditLogsModal
         isOpen={isAdminLogsOpen}
         onClose={() => setIsAdminLogsOpen(false)}
