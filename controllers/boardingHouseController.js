@@ -286,6 +286,17 @@ const compareListings = async (req, res) => {
       });
     }
 
+    // Strict Backend Guard for Target Budget
+    if (maxBudget !== undefined && maxBudget !== null && maxBudget !== '') {
+      const parsedBudget = Number(maxBudget);
+      if (isNaN(parsedBudget) || parsedBudget <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Target monthly budget must be a positive number greater than 0.',
+        });
+      }
+    }
+
     const targetCampus = DAGUPAN_CAMPUSES[campus.toUpperCase()];
     if (!targetCampus) {
       return res.status(400).json({
@@ -337,7 +348,7 @@ const compareListings = async (req, res) => {
       }
     }
 
-    const rankedResults = calculateTOPSIS(houses, weightArray, maxBudget);
+    const rankedResults = calculateTOPSIS(houses, weightArray, maxBudget ? Number(maxBudget) : undefined);
 
     // Live logging of TOPSIS session into AuditLog
     try {

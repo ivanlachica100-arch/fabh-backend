@@ -37,6 +37,15 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses, selecte
       return;
     }
 
+    // Strict Frontend Input Validation Guard
+    if (targetBudget !== '' && targetBudget !== null && targetBudget !== undefined) {
+      const budgetNum = Number(targetBudget);
+      if (isNaN(budgetNum) || budgetNum <= 0) {
+        setError('Target monthly budget must be a valid positive amount (e.g. ₱2,500).');
+        return;
+      }
+    }
+
     setComputing(true);
     setError('');
     try {
@@ -138,9 +147,22 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses, selecte
             </label>
             <input
               type="number"
+              min="1"
               placeholder="e.g. 3500 (Penalizes options above this amount)"
               value={targetBudget}
-              onChange={(e) => setTargetBudget(e.target.value)}
+              onKeyDown={(e) => {
+                // Prevent negative numbers or scientific notation keys
+                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                  e.preventDefault();
+                }
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '' || Number(val) >= 0) {
+                  setTargetBudget(val);
+                  if (error) setError('');
+                }
+              }}
               className="w-full border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
             <div className="flex items-center gap-1.5 mt-2">
@@ -149,7 +171,10 @@ export default function CompareDrawer({ isOpen, onClose, selectedHouses, selecte
                 <button
                   key={amt}
                   type="button"
-                  onClick={() => setTargetBudget(String(amt))}
+                  onClick={() => {
+                    setTargetBudget(String(amt));
+                    if (error) setError('');
+                  }}
                   className="px-2 py-0.5 rounded-md text-[10px] font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer"
                 >
                   ₱{amt.toLocaleString()}
