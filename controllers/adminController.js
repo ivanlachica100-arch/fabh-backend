@@ -132,11 +132,11 @@ exports.getAnalytics = async (req, res, next) => {
       // 1. TOTAL USERS: Active registered user accounts
       User.countDocuments({ isDeactivated: { $ne: true } }),
 
-      // 2. ACTIVE LISTINGS: Verified, available boarding houses
-      BoardingHouse.countDocuments({ isAvailable: true }),
+    // 2. ACTIVE LISTINGS: Verified, available boarding houses (matches both true and unset)
+      BoardingHouse.countDocuments({ isAvailable: { $ne: false } }),
 
       // Source for total value and supply tiers
-      BoardingHouse.find({ isAvailable: true }).select('_id title monthlyRent location address').lean(),
+      BoardingHouse.find({ isAvailable: { $ne: false } }).select('_id title monthlyRent location address').lean(),
 
       // Pending verification queue
       User.countDocuments({ 'landlordApplication.status': 'pending' }),
