@@ -7,7 +7,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'PHINMA University of Pangasinan (UPang)',
     shortName: 'PHINMA UPang',
     lat: 16.0425,
-    lng: 120.3392,
+    lng: 120.3392, // Exact Arellano St campus grounds
     color: '#047857', // Emerald
   },
   {
@@ -16,7 +16,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'University of Luzon (UL)',
     shortName: 'Univ. of Luzon',
     lat: 16.0433,
-    lng: 120.3340,
+    lng: 120.3340, // Perez Boulevard
     color: '#1D4ED8', // Blue
   },
   {
@@ -25,7 +25,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'Universidad de Dagupan (UdD)',
     shortName: 'Univ. de Dagupan',
     lat: 16.0448,
-    lng: 120.3425,
+    lng: 120.3425, // Arellano St East
     color: '#B91C1C', // Red
   },
   {
@@ -34,7 +34,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'Lyceum-Northwestern University (LNU)',
     shortName: 'Lyceum Northwestern',
     lat: 16.0503,
-    lng: 120.3541,
+    lng: 120.3541, // Tapuac District
     color: '#0284C7', // Sky Blue
   },
   {
@@ -43,7 +43,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'PIMSAT Colleges',
     shortName: 'PIMSAT Colleges',
     lat: 16.0405,
-    lng: 120.3385,
+    lng: 120.3385, // Bolosan / Perez
     color: '#7C3AED', // Purple
   },
   {
@@ -52,7 +52,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'Kingfisher School of Business and Finance',
     shortName: 'Kingfisher School',
     lat: 16.0418,
-    lng: 120.3662,
+    lng: 120.3662, // Lucao District
     color: '#D97706', // Amber
   },
   {
@@ -61,7 +61,7 @@ export const DAGUPAN_CAMPUSES = [
     name: 'Pangasinan Merchant Marine Academy (PMMA)',
     shortName: 'PMMA Dagupan',
     lat: 16.0475,
-    lng: 120.3421,
+    lng: 120.3421, // Tapuac / Perez Area
     color: '#0D9488', // Teal
   },
 ];
