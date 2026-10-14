@@ -323,7 +323,7 @@ const compareListings = async (req, res) => {
       });
     }
 
-    let weightArray = [0.3, 0.3, 0.2, 0.2];
+    let weightArray = [0.25, 0.25, 0.25, 0.25];
     if (weights) {
       if (Array.isArray(weights)) {
         weightArray = weights;
@@ -338,6 +338,20 @@ const compareListings = async (req, res) => {
     }
 
     const rankedResults = calculateTOPSIS(houses, weightArray, maxBudget);
+
+    // Live logging of TOPSIS session into AuditLog
+    try {
+      await AuditLog.create({
+        action: 'TOPSIS_COMPARE',
+        user: req.user?._id || null,
+        userEmail: req.user?.email || 'Anonymous Student',
+        details: `Ran TOPSIS comparison across ${rankedResults.length} properties for ${targetCampus.name}`,
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.get('User-Agent') || 'unknown',
+      });
+    } catch (logErr) {
+      console.warn('AuditLog TOPSIS session tracking warning:', logErr.message);
+    }
 
     res.status(200).json({
       success: true,
