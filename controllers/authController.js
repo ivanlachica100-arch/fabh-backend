@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const jwt = require('jsonwebtoken');
 const logActivity = require('../utils/logger');
 const { sendOtpEmail } = require('../utils/mailer');
@@ -672,6 +673,7 @@ exports.applyLandlord = async (req, res) => {
 
     await user.save();
 
+    // 1. Log to Audit Logs
     await logActivity({
       action: 'LANDLORD_APPLY',
       userId: user._id,
@@ -679,6 +681,23 @@ exports.applyLandlord = async (req, res) => {
       details: `Submitted landlord application with uploaded documents (${governmentIdType})`,
       req,
     });
+
+    // 2. Dispatch In-App Bell Notification to all Administrators
+    try {
+      const admins = await User.find({ role: 'admin' }).select('_id');
+      if (admins.length > 0) {
+        const adminNotifications = admins.map((admin) => ({
+          recipient: admin._id,
+          title: 'New Landlord Verification Application',
+          message: `${user.name} (${user.email}) submitted documents for Landlord accreditation.`,
+          type: 'info',
+          link: '/admin/applications',
+        }));
+        await Notification.insertMany(adminNotifications);
+      }
+    } catch (notifErr) {
+      console.warn('Failed to dispatch admin notification:', notifErr.message);
+    }
 
     res.status(200).json({
       success: true,
@@ -776,9 +795,9 @@ exports.updateDetails = async (req, res) => {
 
     const nameRegex = /^[a-zA-Z\s.-]{2,50}$/;
     if (!nameRegex.test(name.trim())) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name can only contain letters, spaces, hyphens, or periods.',
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Name can only contain letters, spaces, hyphens, or periods.' 
       });
     }
 

@@ -7,7 +7,9 @@ import {
   XCircle, 
   FileText, 
   Loader2, 
-  Clock 
+  Clock,
+  AlertTriangle,
+  Send
 } from 'lucide-react';
 
 const resolveDocUrl = (path) => {
@@ -25,6 +27,12 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState(null);
 
+  // Custom UI Dialog States (Replaces native browser window.confirm / prompt)
+  const [confirmApproveApp, setConfirmApproveApp] = useState(null);
+  const [rejectApp, setRejectApp] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionError, setRejectionError] = useState('');
+
   useEffect(() => {
     if (isOpen) fetchApplications();
   }, [isOpen]);
@@ -41,20 +49,42 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
     }
   };
 
-  const handleDecision = async (userId, applicantName, decision) => {
-    if (decision === 'approved') {
-      const confirmApproval = window.confirm(
-        `Are you sure you want to verify and elevate "${applicantName}" to Landlord status?`
-      );
-      if (!confirmApproval) return;
-    }
-
+  const executeApproval = async () => {
+    if (!confirmApproveApp) return;
+    const userId = confirmApproveApp._id;
     setActionId(userId);
     try {
-      await api.put(`/admin/applications/${userId}`, { status: decision });
+      await api.put(`/admin/applications/${userId}`, { status: 'approved' });
       setApplications((prev) => prev.filter((app) => app._id !== userId));
+      setConfirmApproveApp(null);
     } catch (err) {
-      console.error('Decision error:', err);
+      console.error('Approval error:', err);
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const executeRejection = async () => {
+    if (!rejectApp) return;
+    if (!rejectionReason.trim()) {
+      setRejectionError('Please specify a rejection reason for the applicant.');
+      return;
+    }
+
+    const userId = rejectApp._id;
+    setActionId(userId);
+    try {
+      await api.put(`/admin/applications/${userId}`, { 
+        status: 'rejected',
+        rejectionReason: rejectionReason.trim()
+      });
+      setApplications((prev) => prev.filter((app) => app._id !== userId));
+      setRejectApp(null);
+      setRejectionReason('');
+      setRejectionError('');
+    } catch (err) {
+      console.error('Rejection error:', err);
+      setRejectionError(err.response?.data?.message || 'Failed to submit rejection.');
     } finally {
       setActionId(null);
     }
@@ -64,7 +94,7 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh] transition-colors">
+      <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh] transition-colors relative">
         
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -107,9 +137,11 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-xs font-bold text-slate-900 dark:text-white">{app.name}</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{app.email} • {app.landlordApplication?.contactNumber}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {app.email} • {app.landlordApplication?.contactNumber}
+                    </p>
                     <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 inline-block mt-1">
-                      ID: {app.landlordApplication?.governmentIdType || 'Government ID'}
+                      ID: {app.landlordApplication?.governmentIdType || 'Valid ID'}
                     </span>
                   </div>
 
@@ -117,7 +149,7 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       disabled={actionId === app._id}
-                      onClick={() => handleDecision(app._id, app.name, 'approved')}
+                      onClick={() => setConfirmApproveApp(app)}
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1 shadow-xs disabled:opacity-50"
                     >
                       {actionId === app._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
@@ -126,7 +158,11 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       disabled={actionId === app._id}
-                      onClick={() => handleDecision(app._id, app.name, 'rejected')}
+                      onClick={() => {
+                        setRejectApp(app);
+                        setRejectionReason('');
+                        setRejectionError('');
+                      }}
                       className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -159,6 +195,111 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
             ))
           )}
         </div>
+
+        {/* CUSTOM APPROVAL CONFIRMATION MODAL */}
+        {confirmApproveApp && (
+          <div className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-950/60 rounded-xl">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Confirm Elevation</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Grant Landlord Privileges</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Are you sure you want to verify and elevate <strong>"{confirmApproveApp.name}"</strong> to Landlord status? They will immediately receive posting privileges.
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setConfirmApproveApp(null)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeApproval}
+                  disabled={actionId === confirmApproveApp._id}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5"
+                >
+                  {actionId === confirmApproveApp._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                  Confirm & Elevate
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOM REJECTION REASON MODAL */}
+        {rejectApp && (
+          <div className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+                <div className="p-2 bg-rose-100 dark:bg-rose-950/60 rounded-xl">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Reject Application</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">For {rejectApp.name} ({rejectApp.email})</p>
+                </div>
+              </div>
+
+              {rejectionError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs">
+                  {rejectionError}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Reason for Rejection <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows="3"
+                  placeholder="e.g., The uploaded Barangay Permit is expired, or the PhilSys ID photo is blurry and unreadable..."
+                  value={rejectionReason}
+                  onChange={(e) => {
+                    setRejectionReason(e.target.value);
+                    if (rejectionError) setRejectionError('');
+                  }}
+                  className="w-full border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                  This reason will be sent to their account notifications and their registered email.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectApp(null);
+                    setRejectionReason('');
+                    setRejectionError('');
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeRejection}
+                  disabled={actionId === rejectApp._id}
+                  className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5"
+                >
+                  {actionId === rejectApp._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Send Rejection & Notify
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

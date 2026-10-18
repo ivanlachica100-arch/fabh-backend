@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   X, ChevronLeft, ChevronRight, Phone, MessageSquare, 
   Send, ExternalLink, MapPin, ShieldCheck, Star, 
-  Loader2, MessageCircle, UserCheck, Trash2 
+  Loader2, MessageCircle, UserCheck, Trash2, Edit3, Check, AlertCircle
 } from 'lucide-react';
 
 const resolveImageUrl = (path) => {
@@ -25,14 +25,59 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
   const [reviewsError, setReviewsError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Inline Editing State
+  const [isEditing, setIsEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState(false);
+
   const houseId = house?._id || house?.id;
+
+  // Local editable form fields
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    monthlyRent: '',
+    roomsAvailable: '1',
+    phoneNumber: '',
+    facebookUrl: '',
+    telegramUsername: '',
+    whatsappNumber: '',
+    wifi: true,
+    aircon: false,
+    privateBathroom: false,
+    kitchenAllowed: true,
+    cctvSecurity: true,
+  });
 
   useEffect(() => {
     if (!isOpen || !houseId) {
       setReviews([]);
       setReviewsError('');
+      setIsEditing(false);
+      setEditError('');
+      setEditSuccess(false);
       return;
     }
+
+    const contacts = house.contactChannels || {};
+    const am = house.amenities || {};
+
+    setEditForm({
+      title: house.title || house.name || '',
+      description: house.description || '',
+      monthlyRent: house.monthlyRent?.toString() || '',
+      roomsAvailable: (house.roomsAvailable ?? 1).toString(),
+      phoneNumber: contacts.phoneNumber || '',
+      facebookUrl: contacts.facebookUrl || '',
+      telegramUsername: contacts.telegramUsername || '',
+      whatsappNumber: contacts.whatsappNumber || '',
+      wifi: Boolean(am.wifi),
+      aircon: Boolean(am.aircon),
+      privateBathroom: Boolean(am.privateBathroom),
+      kitchenAllowed: Boolean(am.kitchenAllowed),
+      cctvSecurity: Boolean(am.cctvSecurity),
+    });
 
     const fetchCommunityReviews = async () => {
       setLoadingReviews(true);
@@ -53,7 +98,7 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
     };
 
     fetchCommunityReviews();
-  }, [isOpen, houseId]);
+  }, [isOpen, houseId, house]);
 
   if (!isOpen || !house) return null;
 
@@ -76,10 +121,11 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
   const distance = house.distanceToCampusInMeters ?? house.distance;
   const campusName = selectedCampus?.name ? selectedCampus.name.split(' ')[0] : 'Campus';
 
+  // Ownership / Admin privilege detection
   const landlordId = typeof house.landlord === 'object' ? house.landlord?._id : house.landlord;
   const isOwner = user && landlordId && user._id?.toString() === landlordId.toString();
   const isAdmin = user && user.role === 'admin';
-  const canDelete = isOwner || isAdmin;
+  const canModify = isOwner || isAdmin;
 
   const averageRating = reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
@@ -97,10 +143,57 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
     setCurrentImageIdx((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    setEditError('');
+
+    const rent = Number(editForm.monthlyRent);
+    if (!editForm.monthlyRent || isNaN(rent) || rent < 500) {
+      setEditError('Please enter a valid monthly rent (minimum ₱500).');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const payload = {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        monthlyRent: rent,
+        roomsAvailable: Number(editForm.roomsAvailable) || 1,
+        amenities: {
+          wifi: Boolean(editForm.wifi),
+          aircon: Boolean(editForm.aircon),
+          privateBathroom: Boolean(editForm.privateBathroom),
+          kitchenAllowed: Boolean(editForm.kitchenAllowed),
+          cctvSecurity: Boolean(editForm.cctvSecurity),
+        },
+        contactChannels: {
+          phoneNumber: editForm.phoneNumber.trim(),
+          facebookUrl: editForm.facebookUrl.trim(),
+          telegramUsername: editForm.telegramUsername.trim(),
+          whatsappNumber: editForm.whatsappNumber.trim(),
+        },
+      };
+
+      await api.put(`/boarding-houses/${houseId}`, payload);
+      setEditSuccess(true);
+      setTimeout(() => {
+        setEditSuccess(false);
+        setIsEditing(false);
+        if (onRefresh) onRefresh();
+      }, 1000);
+    } catch (err) {
+      console.error('Update dorm error:', err);
+      setEditError(err.response?.data?.message || 'Failed to update property details.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleDeleteListing = async () => {
     const confirmationText = isAdmin && !isOwner
-      ? `Are you sure you want to delete "${houseTitle}" as administrator?`
-      : `Are you sure you want to delete your listing "${houseTitle}"?`;
+      ? `[ADMIN MODERATION] Are you sure you want to permanently delete "${houseTitle}"?`
+      : `Are you sure you want to delete your boarding house listing "${houseTitle}"?`;
 
     if (!window.confirm(confirmationText)) return;
 
@@ -172,246 +265,409 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
           )}
 
           <div className="absolute bottom-2 left-3 px-2.5 py-1 bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-sm">
-            ₱{house.monthlyRent?.toLocaleString()} / month
+            ₱{Number(isEditing ? editForm.monthlyRent || house.monthlyRent : house.monthlyRent)?.toLocaleString()} / month
           </div>
         </div>
 
         {/* Content Body */}
         <div className="p-4 sm:p-5 max-h-[60vh] overflow-y-auto space-y-5">
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{houseTitle}</h2>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {averageRating && (
-                  <span className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {averageRating}
-                  </span>
-                )}
-                <span className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Verified
+          
+          {/* INLINE EDIT MODE FORM */}
+          {isEditing ? (
+            <form onSubmit={handleSaveEdit} className="space-y-4 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Editing Accommodation
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                >
+                  Cancel
+                </button>
               </div>
-            </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>
-                {distance !== undefined ? `${Math.round(distance)}m from ${campusName} • ` : ''}
-                {typeof house.address === 'object' 
-                  ? `${house.address.street}, ${house.address.barangay}, Dagupan City` 
-                  : house.address}
-              </span>
-            </p>
-          </div>
+              {editError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
 
-          {/* Description */}
-          {house.description && (
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-              {house.description}
-            </p>
-          )}
+              {editSuccess && (
+                <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>Details updated successfully!</span>
+                </div>
+              )}
 
-          {/* Contact Landlord Hub */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
-              Contact Landlord Directly
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              
-              {/* Facebook */}
-              <a
-                href={fbUrl.startsWith('http') ? fbUrl : `https://${fbUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-2.5 bg-blue-50 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-900 rounded-xl transition group text-blue-800 dark:text-blue-300"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
-                    f
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Monthly Rent (₱)
+                  </label>
+                  <input
+                    type="number"
+                    value={editForm.monthlyRent}
+                    onChange={(e) => setEditForm({ ...editForm, monthlyRent: e.target.value })}
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Rooms Available
+                  </label>
+                  <input
+                    type="number"
+                    value={editForm.roomsAvailable}
+                    onChange={(e) => setEditForm({ ...editForm, roomsAvailable: e.target.value })}
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.phoneNumber}
+                    onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Facebook URL
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.facebookUrl}
+                    onChange={(e) => setEditForm({ ...editForm, facebookUrl: e.target.value })}
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows="2"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Amenities
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    { key: 'wifi', label: 'Wi-Fi' },
+                    { key: 'aircon', label: 'Aircon' },
+                    { key: 'privateBathroom', label: 'Private Bath' },
+                    { key: 'kitchenAllowed', label: 'Kitchen' },
+                    { key: 'cctvSecurity', label: 'CCTV' },
+                  ].map((amenity) => (
+                    <label key={amenity.key} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm[amenity.key]}
+                        onChange={(e) => setEditForm({ ...editForm, [amenity.key]: e.target.checked })}
+                        className="rounded text-emerald-600 accent-emerald-600"
+                      />
+                      <span className="text-slate-700 dark:text-slate-300 text-[11px]">{amenity.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex-1 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white flex items-center justify-center gap-1.5"
+                >
+                  {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {savingEdit ? 'Saving...' : 'Save Updates'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            /* STANDARD VIEW MODE */
+            <>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{houseTitle}</h2>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {averageRating && (
+                      <span className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {averageRating}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>
+                    {distance !== undefined ? `${Math.round(distance)}m from ${campusName} • ` : ''}
+                    {typeof house.address === 'object' 
+                      ? `${house.address.street}, ${house.address.barangay}, Dagupan City` 
+                      : house.address}
                   </span>
-                  <div className="text-left leading-tight">
-                    <p className="text-xs font-bold">Facebook</p>
-                    <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Chat via Messenger</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              </a>
-
-              {/* Direct Call */}
-              <a
-                href={`tel:${phone}`}
-                className="flex items-center justify-between p-2.5 bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 rounded-xl transition text-emerald-800 dark:text-emerald-300"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                    <Phone className="w-3 h-3" />
-                  </div>
-                  <div className="text-left leading-tight">
-                    <p className="text-xs font-bold">Call Landlord</p>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">{phone}</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Dial &rarr;</span>
-              </a>
-
-              {/* SMS Text */}
-              <a
-                href={`sms:${phone}?body=${prefilledSms}`}
-                className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition text-slate-800 dark:text-slate-200"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-700 dark:bg-slate-600 text-white flex items-center justify-center">
-                    <MessageSquare className="w-3 h-3" />
-                  </div>
-                  <div className="text-left leading-tight">
-                    <p className="text-xs font-bold">Send SMS</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Inquiry Template</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Text &rarr;</span>
-              </a>
-
-              {/* Telegram */}
-              {telegram && (
-                <a
-                  href={`https://t.me/${telegram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-2.5 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border border-sky-200 dark:border-sky-900 rounded-xl transition text-sky-800 dark:text-sky-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-sky-500 text-white flex items-center justify-center">
-                      <Send className="w-3 h-3" />
-                    </div>
-                    <div className="text-left leading-tight">
-                      <p className="text-xs font-bold">Telegram</p>
-                      <p className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">@{telegram.replace('@', '')}</p>
-                    </div>
-                  </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                </a>
-              )}
-
-              {/* WhatsApp */}
-              {whatsapp && (
-                <a
-                  href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-2.5 bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:hover:bg-green-950/50 border border-green-200 dark:border-green-900 rounded-xl transition text-green-800 dark:text-green-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-xs">
-                      W
-                    </div>
-                    <div className="text-left leading-tight">
-                      <p className="text-xs font-bold">WhatsApp</p>
-                      <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">{whatsapp}</p>
-                    </div>
-                  </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* Student Community Reviews Section */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Student Reviews ({reviews.length})
-              </h3>
-              {averageRating && (
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  Rating: <strong className="text-slate-800 dark:text-slate-200">{averageRating}</strong> / 5.0
-                </span>
-              )}
-            </div>
-
-            {loadingReviews ? (
-              <div className="py-6 flex flex-col items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                <p className="text-xs">Loading verified student reviews...</p>
-              </div>
-            ) : reviewsError ? (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
-                {reviewsError}
-              </div>
-            ) : reviews.length === 0 ? (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  No student reviews yet for this boarding house.
-                </p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                  Verified Dagupan students who book or visit can be the first to rate!
                 </p>
               </div>
-            ) : (
-              <div className="space-y-2.5">
-                {reviews.map((rev) => {
-                  const studentName = rev.student?.name || 'Verified Dagupan Student';
-                  const reviewDate = rev.createdAt 
-                    ? new Date(rev.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })
-                    : 'Recent';
 
-                  return (
-                    <div 
-                      key={rev._id}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1.5 transition-colors"
+              {/* Description */}
+              {house.description && (
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  {house.description}
+                </p>
+              )}
+
+              {/* Contact Landlord Hub */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+                  Contact Landlord Directly
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  
+                  {/* Facebook */}
+                  <a
+                    href={fbUrl.startsWith('http') ? fbUrl : `https://${fbUrl}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2.5 bg-blue-50 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-900 rounded-xl transition group text-blue-800 dark:text-blue-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+                        f
+                      </span>
+                      <div className="text-left leading-tight">
+                        <p className="text-xs font-bold">Facebook</p>
+                        <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Chat via Messenger</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  </a>
+
+                  {/* Direct Call */}
+                  <a
+                    href={`tel:${phone}`}
+                    className="flex items-center justify-between p-2.5 bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 rounded-xl transition text-emerald-800 dark:text-emerald-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                        <Phone className="w-3 h-3" />
+                      </div>
+                      <div className="text-left leading-tight">
+                        <p className="text-xs font-bold">Call Landlord</p>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">{phone}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Dial &rarr;</span>
+                  </a>
+
+                  {/* SMS Text */}
+                  <a
+                    href={`sms:${phone}?body=${prefilledSms}`}
+                    className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition text-slate-800 dark:text-slate-200"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-slate-700 dark:bg-slate-600 text-white flex items-center justify-center">
+                        <MessageSquare className="w-3 h-3" />
+                      </div>
+                      <div className="text-left leading-tight">
+                        <p className="text-xs font-bold">Send SMS</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Inquiry Template</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Text &rarr;</span>
+                  </a>
+
+                  {/* Telegram */}
+                  {telegram && (
+                    <a
+                      href={`https://t.me/${telegram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-2.5 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border border-sky-200 dark:border-sky-900 rounded-xl transition text-sky-800 dark:text-sky-300"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <UserCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                            {studentName}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                          {reviewDate}
-                        </span>
-                      </div>
-
                       <div className="flex items-center gap-2">
-                        {renderStars(rev.rating || 5)}
-                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                          {rev.rating ? `${rev.rating}.0` : ''}
-                        </span>
+                        <div className="w-6 h-6 rounded-full bg-sky-500 text-white flex items-center justify-center">
+                          <Send className="w-3 h-3" />
+                        </div>
+                        <div className="text-left leading-tight">
+                          <p className="text-xs font-bold">Telegram</p>
+                          <p className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">@{telegram.replace('@', '')}</p>
+                        </div>
                       </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                    </a>
+                  )}
 
-                      {rev.comment && (
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-0.5">
-                          "{rev.comment}"
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+                  {/* WhatsApp */}
+                  {whatsapp && (
+                    <a
+                      href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-2.5 bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:hover:bg-green-950/50 border border-green-200 dark:border-green-900 rounded-xl transition text-green-800 dark:text-green-300"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-xs">
+                          W
+                        </div>
+                        <div className="text-left leading-tight">
+                          <p className="text-xs font-bold">WhatsApp</p>
+                          <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">{whatsapp}</p>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                    </a>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Landlord Owner or Admin Delete Action */}
-          {canDelete && (
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={handleDeleteListing}
-                disabled={isDeleting}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+              {/* Student Community Reviews Section */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Student Reviews ({reviews.length})
+                  </h3>
+                  {averageRating && (
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      Rating: <strong className="text-slate-800 dark:text-slate-200">{averageRating}</strong> / 5.0
+                    </span>
+                  )}
+                </div>
+
+                {loadingReviews ? (
+                  <div className="py-6 flex flex-col items-center justify-center text-slate-400 gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                    <p className="text-xs">Loading verified student reviews...</p>
+                  </div>
+                ) : reviewsError ? (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
+                    {reviewsError}
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      No student reviews yet for this boarding house.
+                    </p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                      Verified Dagupan students who book or visit can be the first to rate!
+                    </p>
+                  </div>
                 ) : (
-                  <Trash2 className="w-4 h-4" />
+                  <div className="space-y-2.5">
+                    {reviews.map((rev) => {
+                      const studentName = rev.student?.name || 'Verified Dagupan Student';
+                      const reviewDate = rev.createdAt 
+                        ? new Date(rev.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : 'Recent';
+
+                      return (
+                        <div 
+                          key={rev._id}
+                          className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1.5 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <UserCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                                {studentName}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                              {reviewDate}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {renderStars(rev.rating || 5)}
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                              {rev.rating ? `${rev.rating}.0` : ''}
+                            </span>
+                          </div>
+
+                          {rev.comment && (
+                            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-0.5">
+                              "{rev.comment}"
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-                {isAdmin && !isOwner ? 'Delete Listing as Administrator (Moderation)' : 'Delete My Listing'}
-              </button>
-            </div>
+              </div>
+
+              {/* Landlord Owner or Admin Management Actions */}
+              {canModify && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    Edit Property Details
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteListing}
+                    disabled={isDeleting}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    {isAdmin && !isOwner ? 'Delete Listing as Administrator (Moderation)' : 'Delete Listing'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
         </div>

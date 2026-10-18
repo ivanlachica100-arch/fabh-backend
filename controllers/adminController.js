@@ -4,6 +4,7 @@ const BoardingHouse = require('../models/BoardingHouse');
 const AuditLog = require('../models/AuditLog');
 const Notification = require('../models/Notification');
 const logActivity = require('../utils/logger');
+const { sendAccountDeactivationEmail } = require('../utils/mailer');
 
 // GET /api/admin/landlord-applications
 exports.getPendingLandlordApplications = async (req, res, next) => {
@@ -66,8 +67,12 @@ exports.reviewLandlordApplication = async (req, res, next) => {
       targetUser.landlordApplication.reviewedAt = new Date();
       targetUser.landlordApplication.reviewedBy = req.user.id;
     } else if (action === 'reject') {
+      const reasonText = (rejectionReason && rejectionReason.trim()) 
+        ? rejectionReason.trim() 
+        : 'Uploaded documentation was insufficient or unreadable.';
+
       targetUser.landlordApplication.status = 'rejected';
-      targetUser.landlordApplication.rejectionReason = rejectionReason || 'Documentation did not meet criteria.';
+      targetUser.landlordApplication.rejectionReason = reasonText;
       targetUser.landlordApplication.reviewedAt = new Date();
       targetUser.landlordApplication.reviewedBy = req.user.id;
     } else {
@@ -76,25 +81,42 @@ exports.reviewLandlordApplication = async (req, res, next) => {
 
     await targetUser.save();
 
+    // 1. Create In-App Bell Notification for the Applicant
     try {
+      const reasonGiven = targetUser.landlordApplication.rejectionReason;
       await Notification.create({
         recipient: targetUser._id,
-        title: isApproved ? 'Landlord Accreditation Approved!' : 'Application Status Update',
+        title: isApproved ? 'Landlord Accreditation Approved!' : 'Landlord Application Declined',
         message: isApproved
-          ? 'Congratulations! Your landlord verification documents have been approved by administration. You can now manage and publish listings in the Landlord Portal.'
-          : `Your landlord application was not approved. Feedback: ${targetUser.landlordApplication.rejectionReason}`,
+          ? 'Congratulations! Your landlord verification documents have been verified and approved. You can now access the Landlord Portal to manage and publish your boarding houses.'
+          : `Your landlord application was declined. Reason: "${reasonGiven}". Details have also been dispatched to your email.`,
         type: isApproved ? 'success' : 'warning',
       });
     } catch (notifErr) {
       console.warn('In-app notification creation error:', notifErr.message);
     }
 
+    // 2. Dispatch Email Notice to Applicant if Rejected
+    if (!isApproved) {
+      try {
+        if (typeof sendAccountDeactivationEmail === 'function') {
+          await sendAccountDeactivationEmail(
+            targetUser.email,
+            `Your landlord accreditation request was declined. Reason: "${targetUser.landlordApplication.rejectionReason}". You may re-apply with clear and valid documents.`
+          );
+        }
+      } catch (mailErr) {
+        console.warn('Rejection email delivery notice:', mailErr.message);
+      }
+    }
+
+    // 3. Log to Audit Logs
     if (typeof logActivity === 'function') {
       await logActivity({
         action: isApproved ? 'LANDLORD_APPROVED' : 'LANDLORD_REJECTED',
         userId: req.user.id,
         userEmail: req.user.email,
-        details: `${isApproved ? 'Approved' : 'Rejected'} landlord application for ${targetUser.email}.`,
+        details: `${isApproved ? 'Approved' : 'Rejected'} landlord application for ${targetUser.email}.${!isApproved ? ` Reason: ${targetUser.landlordApplication.rejectionReason}` : ''}`,
         req,
       });
     }
