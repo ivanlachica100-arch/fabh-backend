@@ -66,7 +66,16 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // 5. Static Uploads Folder
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// AFTER: Static Uploads Folder with Cross-Origin Resource Sharing
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+  },
+  express.static(path.join(__dirname, 'uploads'))
+);
 
 // 6. Health Check Route
 app.get('/api/health', (req, res) => {

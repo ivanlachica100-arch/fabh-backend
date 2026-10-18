@@ -89,7 +89,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
         </div>
 
         {/* MAIN BODY CONTENT */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 bg-slate-50/50 dark:bg-slate-900">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 bg-slate-50 dark:bg-slate-950">
           {loading ? (
             <div className="text-center py-20 text-slate-400 dark:text-slate-500 flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600 dark:text-emerald-400" />
@@ -112,7 +112,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   
                   {/* KPI 1: TOTAL USERS */}
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs relative overflow-hidden">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Total Users</span>
                       <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -128,7 +128,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                   </div>
 
                   {/* KPI 2: ACTIVE LISTINGS */}
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs relative overflow-hidden">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Active Listings</span>
                       <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -144,7 +144,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                   </div>
 
                   {/* KPI 3: TOTAL LISTINGS VALUE */}
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs relative overflow-hidden">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Total Listings Value</span>
                       <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
@@ -160,7 +160,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                   </div>
 
                   {/* KPI 4: AI MATCHES */}
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs relative overflow-hidden">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">AI Matches</span>
                       <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
@@ -182,7 +182,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
                 
                 {/* SUPPLY VS DEMAND CHART */}
-                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 shadow-xs flex flex-col justify-between">
+                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -233,13 +233,13 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                             </div>
 
                             <div className="space-y-1">
-                              <div className="w-full bg-slate-100 dark:bg-slate-700/60 rounded-full h-2 overflow-hidden flex">
+                              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden flex">
                                 <div 
                                   style={{ width: `${Math.max(4, supplyPct)}%` }} 
                                   className="bg-emerald-500 h-full rounded-full transition-all duration-700 ease-out" 
                                 />
                               </div>
-                              <div className="w-full bg-slate-100 dark:bg-slate-700/60 rounded-full h-2 overflow-hidden flex">
+                              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden flex">
                                 <div 
                                   style={{ width: `${Math.max(4, demandPct)}%` }} 
                                   className="bg-indigo-500 h-full rounded-full transition-all duration-700 ease-out" 
@@ -252,14 +252,14 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
                     <span>Grouped across 4 defense price brackets</span>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">Optimal Liquidity: 1.5K - 3K</span>
                   </div>
                 </div>
 
                 {/* UNIVERSITY DEMAND DONUT */}
-                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 shadow-xs flex flex-col justify-between">
+                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -278,7 +278,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
                       <div className="relative w-36 h-36 mx-auto">
                         <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeWidth="4.2" className="text-slate-100 dark:text-slate-700/60" />
+                          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeWidth="4.2" className="text-slate-100 dark:text-slate-800" />
                           {donutSlices.map((slice) => (
                             <circle
                               key={slice.name}
@@ -311,7 +311,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                           <div 
                             key={item.name} 
                             className={`p-1.5 rounded-xl transition flex items-center justify-between ${
-                              hoveredSlice?.name === item.name ? 'bg-slate-100 dark:bg-slate-700/60' : ''
+                              hoveredSlice?.name === item.name ? 'bg-slate-100 dark:bg-slate-800' : ''
                             }`}
                             onMouseEnter={() => setHoveredSlice(item)}
                             onMouseLeave={() => setHoveredSlice(null)}
@@ -334,7 +334,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
                     <span>Geofenced search distribution</span>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">Corridor: PHINMA UPang</span>
                   </div>
@@ -346,7 +346,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
                 
                 {/* TOP 4 AI-COMPARED BOARDING HOUSES */}
-                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 shadow-xs flex flex-col justify-between">
+                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -368,23 +368,23 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                         analytics.topComparedDorms.map((dorm, idx) => (
                           <div 
                             key={dorm.id || dorm.name} 
-                            className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-750/70 border border-slate-100 dark:border-slate-700/60 space-y-1.5"
+                            className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 shadow-xs space-y-2"
                           >
                             <div className="flex justify-between items-center text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
                                   idx === 0 
                                     ? 'bg-amber-500 text-white shadow-xs' 
                                     : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                                 }`}>
                                   #{idx + 1}
                                 </span>
-                                <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">
+                                <span className="font-bold text-slate-900 dark:text-white truncate">
                                   {dorm.name}
                                 </span>
                               </div>
-                              <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">
-                                {dorm.percentage}% <span className="text-[9px] font-normal text-slate-400">({dorm.count} compares)</span>
+                              <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
+                                {dorm.percentage}% <span className="text-[9px] font-normal text-slate-500 dark:text-slate-400">({dorm.count} compares)</span>
                               </span>
                             </div>
 
@@ -402,14 +402,14 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
                     <span>Ranked against total TOPSIS evaluations</span>
                     <span className="font-semibold text-slate-600 dark:text-slate-300">Share Ratio: % of total pool</span>
                   </div>
                 </div>
 
                 {/* AI DECISION METRICS (TOPSIS) */}
-                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 shadow-xs flex flex-col justify-between">
+                <div className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -429,53 +429,53 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
                     <div className="grid grid-cols-2 gap-2.5 pt-1">
                       
                       {/* Metric 1 */}
-                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-750/70 border border-slate-100 dark:border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-0.5">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 shadow-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                           Total AI Usage
                         </span>
-                        <p className="text-lg font-black text-slate-900 dark:text-white">
+                        <p className="text-xl font-black text-slate-900 dark:text-white">
                           {analytics?.aiDecisionMetrics?.totalUsage ?? 0}
                         </p>
-                        <p className="text-[9px] text-slate-400 mt-0.5">Completed Sessions</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Completed Sessions</p>
                       </div>
 
                       {/* Metric 2 */}
-                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-750/70 border border-slate-100 dark:border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-0.5">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 shadow-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                           Top Preference Mode
                         </span>
                         <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 truncate">
                           {analytics?.aiDecisionMetrics?.topPreferenceMode || 'Budget First (54%)'}
                         </p>
-                        <p className="text-[9px] text-slate-400 mt-0.5">Highest User Criterion</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Highest User Criterion</p>
                       </div>
 
                       {/* Metric 3 */}
-                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-750/70 border border-slate-100 dark:border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-0.5">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 shadow-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                           Avg. Listings / Compare
                         </span>
-                        <p className="text-lg font-black text-slate-900 dark:text-white">
+                        <p className="text-xl font-black text-slate-900 dark:text-white">
                           {analytics?.aiDecisionMetrics?.avgComparedListings || '3.6 / 4.0 slots'}
                         </p>
-                        <p className="text-[9px] text-slate-400 mt-0.5">Capacity Utilization</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Capacity Utilization</p>
                       </div>
 
                       {/* Metric 4 */}
-                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-750/70 border border-slate-100 dark:border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-0.5">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 shadow-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                           Inquiry Click Rate
                         </span>
-                        <p className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+                        <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">
                           {analytics?.aiDecisionMetrics?.inquiryClickRate || '38%'}
                         </p>
-                        <p className="text-[9px] text-slate-400 mt-0.5">Post-AI Inquiries</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Post-AI Inquiries</p>
                       </div>
 
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
                     <span className="flex items-center gap-1">
                       <Info className="w-3 h-3 text-slate-400" />
                       Formula: (Post-AI Inquiries / Total AI Comparisons) * 100
@@ -493,7 +493,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
         </div>
 
         {/* FOOTER */}
-        <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
             FABH Quantitative Analytics Engine • Dagupan University Corridor
@@ -501,7 +501,7 @@ export default function AdminAnalyticsModal({ isOpen, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
+            className="px-4 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
           >
             Close Dashboard
           </button>

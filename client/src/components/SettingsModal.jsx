@@ -56,20 +56,20 @@ export default function SettingsModal({ isOpen, onClose }) {
     setProfileMsg({ text: '', type: '' });
 
     if (!name.trim() || name.trim().length < 2) {
-      setProfileMsg({ text: 'Name must be at least 2 characters.', type: 'error' });
+      setProfileMsg({ text: 'Username must be at least 2 characters.', type: 'error' });
       return;
     }
 
     setProfileSaving(true);
     try {
       await api.put('/auth/update-details', { name: name.trim() });
-      setProfileMsg({ text: 'Profile updated successfully!', type: 'success' });
+      setProfileMsg({ text: 'Username updated successfully!', type: 'success' });
       setTimeout(() => {
         window.location.reload();
       }, 700);
     } catch (err) {
       setProfileMsg({ 
-        text: err.response?.data?.message || 'Failed to update profile.', 
+        text: err.response?.data?.message || 'Failed to update username.', 
         type: 'error' 
       });
     } finally {
@@ -191,10 +191,11 @@ export default function SettingsModal({ isOpen, onClose }) {
 
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Full Name
+                  Username
                 </label>
                 <input
                   type="text"
+                  placeholder="Enter your username"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"

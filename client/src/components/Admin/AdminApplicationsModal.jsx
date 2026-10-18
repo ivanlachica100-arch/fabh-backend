@@ -10,6 +10,16 @@ import {
   Clock 
 } from 'lucide-react';
 
+const resolveDocUrl = (path) => {
+  if (!path) return '#';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const normalized = cleanPath.startsWith('/uploads') ? cleanPath : `/uploads${cleanPath}`;
+  return `https://fabh-backend.onrender.com${normalized}`;
+};
+
 export default function AdminApplicationsModal({ isOpen, onClose }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,14 +41,20 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
     }
   };
 
-  const handleDecision = async (userId, decision) => {
+  const handleDecision = async (userId, applicantName, decision) => {
+    if (decision === 'approved') {
+      const confirmApproval = window.confirm(
+        `Are you sure you want to verify and elevate "${applicantName}" to Landlord status?`
+      );
+      if (!confirmApproval) return;
+    }
+
     setActionId(userId);
     try {
       await api.put(`/admin/applications/${userId}`, { status: decision });
       setApplications((prev) => prev.filter((app) => app._id !== userId));
     } catch (err) {
       console.error('Decision error:', err);
-      alert('Could not update application status.');
     } finally {
       setActionId(null);
     }
@@ -101,7 +117,7 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       disabled={actionId === app._id}
-                      onClick={() => handleDecision(app._id, 'approved')}
+                      onClick={() => handleDecision(app._id, app.name, 'approved')}
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1 shadow-xs disabled:opacity-50"
                     >
                       {actionId === app._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
@@ -110,7 +126,7 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       disabled={actionId === app._id}
-                      onClick={() => handleDecision(app._id, 'rejected')}
+                      onClick={() => handleDecision(app._id, app.name, 'rejected')}
                       className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -121,7 +137,7 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
 
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                   <a
-                    href={app.landlordApplication?.idDocumentUrl || '#'}
+                    href={resolveDocUrl(app.landlordApplication?.idDocumentUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-emerald-500 transition"
@@ -130,7 +146,7 @@ export default function AdminApplicationsModal({ isOpen, onClose }) {
                     <span>View Government ID</span>
                   </a>
                   <a
-                    href={app.landlordApplication?.ownershipDocumentUrl || '#'}
+                    href={resolveDocUrl(app.landlordApplication?.ownershipDocumentUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-emerald-500 transition"

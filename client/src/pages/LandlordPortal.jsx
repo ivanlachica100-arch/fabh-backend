@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import { 
   Plus, 
   Home, 
   CheckCircle2, 
   XCircle, 
   Trash2, 
+  Edit3,
   ArrowLeft, 
   Loader2, 
   MapPin, 
@@ -14,10 +15,77 @@ import {
   AlertCircle,
   Image as ImageIcon,
   UploadCloud,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { DAGUPAN_CENTER } from '../constants/landmarks';
+import { DAGUPAN_BARANGAYS } from '../constants/barangays';
 import 'leaflet/dist/leaflet.css';
+
+// Native browser HTML5 canvas image compressor
+const compressImageFile = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.78) => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
+// Auto-pans map whenever target coordinates update
+function MapController({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] && center[1]) {
+      map.setView(center, map.getZoom(), { animate: true });
+      map.invalidateSize();
+    }
+  }, [center, map]);
+  return null;
+}
 
 function LocationPicker({ position, onPositionChange }) {
   useMapEvents({
@@ -33,17 +101,28 @@ export default function LandlordPortal({ onBackToExplore }) {
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingHouseId, setEditingHouseId] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [autoFilledStatus, setAutoFilledStatus] = useState('');
   
+  // Toast Feedback State
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 4500);
+  };
+
   // Image Upload State
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
 
-  // Field-level error validation state
+  // Form Validation State
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const formTopRef = useRef(null);
@@ -83,14 +162,71 @@ export default function LandlordPortal({ onBackToExplore }) {
       setMyListings(res.data.data || res.data || []);
     } catch (err) {
       console.error('Failed to load listings:', err);
+      showToast('Failed to load your registered listings.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const resetFormState = () => {
+    setShowAddForm(false);
+    setEditingHouseId(null);
+    setFormData(initialFormState);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setErrors({});
+    setSubmitError('');
+    setAutoFilledStatus('');
+  };
+
+  const handleEditClick = (house) => {
+    setEditingHouseId(house._id);
+    setShowAddForm(true);
+    setSubmitError('');
+    setErrors({});
+
+    const coords = house.location?.coordinates || [120.3380, 16.0430];
+    const addr = house.address || {};
+    const amenities = house.amenities || {};
+    const contacts = house.contactChannels || {};
+
+    setFormData({
+      title: house.title || house.name || '',
+      description: house.description || '',
+      street: typeof addr === 'object' ? addr.street || '' : '',
+      barangay: typeof addr === 'object' ? addr.barangay || 'Poblacion Oeste' : 'Poblacion Oeste',
+      city: 'Dagupan City',
+      monthlyRent: house.monthlyRent?.toString() || '',
+      roomsAvailable: (house.roomsAvailable ?? 1).toString(),
+      genderPreference: house.genderPreference || 'any',
+      phoneNumber: contacts.phoneNumber || '',
+      facebookUrl: contacts.facebookUrl || '',
+      telegramUsername: contacts.telegramUsername || '',
+      whatsappNumber: contacts.whatsappNumber || '',
+      wifi: Boolean(amenities.wifi),
+      aircon: Boolean(amenities.aircon),
+      privateBathroom: Boolean(amenities.privateBathroom),
+      kitchenAllowed: Boolean(amenities.kitchenAllowed),
+      cctvSecurity: Boolean(amenities.cctvSecurity),
+      lat: coords[1] || 16.0430,
+      lng: coords[0] || 120.3380,
+    });
+
+    if (house.images && Array.isArray(house.images)) {
+      setPreviewUrls(house.images);
+    } else {
+      setPreviewUrls([]);
+    }
+    setSelectedFiles([]);
+
+    setTimeout(() => {
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      showToast('Geolocation is not supported by your browser.', 'error');
       return;
     }
     setGettingLocation(true);
@@ -100,13 +236,11 @@ export default function LandlordPortal({ onBackToExplore }) {
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         if (latitude < 15.7 || latitude > 16.4 || longitude < 119.7 || longitude > 120.9) {
-          alert('GPS detected coordinates outside Dagupan/Pangasinan. Please pin manually.');
+          showToast('GPS coordinates are outside Dagupan. Tap map manually.', 'info');
         }
 
-        // Update coordinates
         setFormData((prev) => ({ ...prev, lat: latitude, lng: longitude }));
 
-        // Reverse Geocoding with OpenStreetMap Nominatim
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
@@ -123,7 +257,7 @@ export default function LandlordPortal({ onBackToExplore }) {
               addr.suburb || 
               '';
 
-            const detectedBarangayCandidate = (
+            const detectedCandidate = (
               addr.village || 
               addr.neighbourhood || 
               addr.quarter || 
@@ -131,20 +265,8 @@ export default function LandlordPortal({ onBackToExplore }) {
               ''
             ).toLowerCase();
 
-            // Match against Dagupan predefined barangay options
-            const barangayOptions = [
-              'Poblacion Oeste',
-              'Tapuac',
-              'Malued',
-              'Lucao',
-              'Pantol',
-              'Downtown',
-              'Mayombo',
-              'Herrero-Perez',
-            ];
-
-            const matchedBarangay = barangayOptions.find((bg) =>
-              detectedBarangayCandidate.includes(bg.toLowerCase())
+            const matchedBarangay = DAGUPAN_BARANGAYS.find((bg) =>
+              detectedCandidate.includes(bg.toLowerCase())
             );
 
             setFormData((prev) => ({
@@ -153,7 +275,6 @@ export default function LandlordPortal({ onBackToExplore }) {
               barangay: matchedBarangay || prev.barangay,
             }));
 
-            // Clear any validation errors on street
             if (detectedStreet) {
               setErrors((prev) => {
                 const next = { ...prev };
@@ -175,7 +296,7 @@ export default function LandlordPortal({ onBackToExplore }) {
       },
       (err) => {
         console.error('GPS error:', err);
-        alert('Could not acquire GPS position. Tap the map to select manually.');
+        showToast('Could not acquire GPS position. Tap the map to select manually.', 'error');
         setGettingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -191,9 +312,10 @@ export default function LandlordPortal({ onBackToExplore }) {
       setMyListings((prev) =>
         prev.map((item) => (item._id === house._id ? { ...item, isAvailable: updatedStatus } : item))
       );
+      showToast(`Property marked as ${updatedStatus ? 'Vacant / Available' : 'Fully Occupied'}.`, 'success');
     } catch (err) {
       console.error('Failed to toggle status:', err);
-      alert('Could not update vacancy status.');
+      showToast('Could not update vacancy status.', 'error');
     } finally {
       setTogglingId(null);
     }
@@ -205,9 +327,10 @@ export default function LandlordPortal({ onBackToExplore }) {
     try {
       await api.delete(`/boarding-houses/${houseId}`);
       setMyListings((prev) => prev.filter((item) => item._id !== houseId));
+      showToast('Boarding house listing deleted successfully.', 'success');
     } catch (err) {
       console.error('Failed to delete:', err);
-      alert('Could not delete listing.');
+      showToast('Could not delete accommodation.', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -224,17 +347,30 @@ export default function LandlordPortal({ onBackToExplore }) {
     }
   };
 
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (selectedFiles.length + files.length > 5) {
-      alert('You can upload a maximum of 5 photos per accommodation.');
+  const handleImageSelect = async (e) => {
+    const rawFiles = Array.from(e.target.files);
+    if (selectedFiles.length + rawFiles.length > 5) {
+      showToast('Maximum of 5 photos per accommodation allowed.', 'info');
       return;
     }
-    const combined = [...selectedFiles, ...files];
-    setSelectedFiles(combined);
 
-    const urls = combined.map((file) => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+    setCompressing(true);
+    try {
+      const compressedFiles = await Promise.all(
+        rawFiles.map((file) => compressImageFile(file))
+      );
+
+      const combined = [...selectedFiles, ...compressedFiles];
+      setSelectedFiles(combined);
+
+      const urls = combined.map((file) => URL.createObjectURL(file));
+      setPreviewUrls(urls);
+    } catch (compressionErr) {
+      console.error('Image compression error:', compressionErr);
+      showToast('Failed to optimize some images. Please try again.', 'error');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const handleRemoveImage = (index) => {
@@ -301,7 +437,7 @@ export default function LandlordPortal({ onBackToExplore }) {
     return true;
   };
 
-  const handleCreateListing = async (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     setSubmitError('');
 
@@ -309,57 +445,123 @@ export default function LandlordPortal({ onBackToExplore }) {
 
     setSubmitting(true);
     try {
-      const uploadData = new FormData();
-      uploadData.append('title', formData.title.trim());
-      uploadData.append('description', formData.description.trim());
-      uploadData.append('street', formData.street.trim());
-      uploadData.append('barangay', formData.barangay.trim());
-      uploadData.append('monthlyRent', formData.monthlyRent);
-      uploadData.append('roomsAvailable', formData.roomsAvailable);
-      uploadData.append('genderPreference', formData.genderPreference);
-      uploadData.append('phoneNumber', formData.phoneNumber.trim().replace(/[\s\-()]/g, ''));
-      uploadData.append('facebookUrl', formData.facebookUrl.trim());
-      uploadData.append('lat', formData.lat);
-      uploadData.append('lng', formData.lng);
+      if (editingHouseId) {
+        const updatePayload = {
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          monthlyRent: Number(formData.monthlyRent),
+          roomsAvailable: Number(formData.roomsAvailable),
+          genderPreference: formData.genderPreference,
+          lat: formData.lat,
+          lng: formData.lng,
+          address: {
+            street: formData.street.trim(),
+            barangay: formData.barangay.trim(),
+            city: 'Dagupan City',
+          },
+          amenities: {
+            wifi: Boolean(formData.wifi),
+            aircon: Boolean(formData.aircon),
+            privateBathroom: Boolean(formData.privateBathroom),
+            kitchenAllowed: Boolean(formData.kitchenAllowed),
+            cctvSecurity: Boolean(formData.cctvSecurity),
+          },
+          contactChannels: {
+            phoneNumber: formData.phoneNumber.trim().replace(/[\s\-()]/g, ''),
+            facebookUrl: formData.facebookUrl.trim(),
+            telegramUsername: formData.telegramUsername.trim(),
+            whatsappNumber: formData.whatsappNumber.trim(),
+          },
+        };
 
-      uploadData.append(
-        'amenities',
-        JSON.stringify({
-          wifi: Boolean(formData.wifi),
-          aircon: Boolean(formData.aircon),
-          privateBathroom: Boolean(formData.privateBathroom),
-          kitchenAllowed: Boolean(formData.kitchenAllowed),
-          cctvSecurity: Boolean(formData.cctvSecurity),
-        })
-      );
+        const res = await api.put(`/boarding-houses/${editingHouseId}`, updatePayload);
+        const updatedEntry = res.data.data || res.data;
 
-      selectedFiles.forEach((file) => {
-        uploadData.append('images', file);
-      });
+        setMyListings((prev) =>
+          prev.map((item) => (item._id === editingHouseId ? { ...item, ...updatedEntry } : item))
+        );
+        resetFormState();
+        showToast('Accommodation updated successfully!', 'success');
+      } else {
+        const uploadData = new FormData();
+        uploadData.append('title', formData.title.trim());
+        uploadData.append('description', formData.description.trim());
+        uploadData.append('street', formData.street.trim());
+        uploadData.append('barangay', formData.barangay.trim());
+        uploadData.append('monthlyRent', formData.monthlyRent);
+        uploadData.append('roomsAvailable', formData.roomsAvailable);
+        uploadData.append('genderPreference', formData.genderPreference);
+        uploadData.append('phoneNumber', formData.phoneNumber.trim().replace(/[\s\-()]/g, ''));
+        uploadData.append('facebookUrl', formData.facebookUrl.trim());
+        uploadData.append('lat', formData.lat);
+        uploadData.append('lng', formData.lng);
 
-      const res = await api.post('/boarding-houses', uploadData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+        uploadData.append(
+          'amenities',
+          JSON.stringify({
+            wifi: Boolean(formData.wifi),
+            aircon: Boolean(formData.aircon),
+            privateBathroom: Boolean(formData.privateBathroom),
+            kitchenAllowed: Boolean(formData.kitchenAllowed),
+            cctvSecurity: Boolean(formData.cctvSecurity),
+          })
+        );
 
-      const newEntry = res.data.data || res.data;
-      setMyListings([newEntry, ...myListings]);
-      setShowAddForm(false);
-      setFormData(initialFormState);
-      setSelectedFiles([]);
-      setPreviewUrls([]);
-      setErrors({});
-      setAutoFilledStatus('');
-      alert('Boarding house published successfully with photos!');
+        for (const file of selectedFiles) {
+          uploadData.append('images', file);
+        }
+
+        const res = await api.post('/boarding-houses', uploadData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const newEntry = res.data.data || res.data;
+        setMyListings([newEntry, ...myListings]);
+        resetFormState();
+        showToast('Accommodation published successfully with optimized photos!', 'success');
+      }
     } catch (err) {
-      console.error('Create listing error:', err);
-      setSubmitError(err.response?.data?.message || 'Server error while saving your listing.');
+      console.error('Submit listing error:', err);
+      const msg = err.response?.data?.message || 'Server error while saving your listing.';
+      setSubmitError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="w-full h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-100 dark:selection:bg-emerald-950/50 selection:text-emerald-900 dark:selection:text-emerald-200 transition-colors duration-200">
+    <div className="w-full h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-100 dark:selection:bg-emerald-950/50 selection:text-emerald-900 dark:selection:text-emerald-200 transition-colors duration-200 relative">
+      
+      {/* Floating Modern Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold backdrop-blur-md ${
+            toast.type === 'error'
+              ? 'bg-rose-50/95 dark:bg-rose-950/90 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800'
+              : toast.type === 'info'
+              ? 'bg-blue-50/95 dark:bg-blue-950/90 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800'
+              : 'bg-emerald-50/95 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
+          }`}>
+            {toast.type === 'error' ? (
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+            ) : toast.type === 'info' ? (
+              <AlertCircle className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            )}
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast({ show: false, message: '', type: 'success' })}
+              className="ml-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xs transition-colors duration-200">
         <div className="flex items-center gap-3">
@@ -381,7 +583,6 @@ export default function LandlordPortal({ onBackToExplore }) {
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Registration Modal Form */}
         {showAddForm && (
           <div 
             ref={formTopRef} 
@@ -389,21 +590,14 @@ export default function LandlordPortal({ onBackToExplore }) {
           >
             <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />
+                <span className={`w-2.5 h-2.5 rounded-full ${editingHouseId ? 'bg-amber-500' : 'bg-emerald-600'}`} />
                 <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                  Register New Accommodation
+                  {editingHouseId ? 'Edit Accommodation Details' : 'Register New Accommodation'}
                 </h2>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setShowAddForm(false);
-                  setErrors({});
-                  setSubmitError('');
-                  setSelectedFiles([]);
-                  setPreviewUrls([]);
-                  setAutoFilledStatus('');
-                }}
+                onClick={resetFormState}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-semibold cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Cancel
@@ -420,11 +614,11 @@ export default function LandlordPortal({ onBackToExplore }) {
             {Object.keys(errors).length > 0 && (
               <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>Please correct the highlighted fields below before publishing.</span>
+                <span>Please correct the highlighted fields below before saving.</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateListing} noValidate className="space-y-4">
+            <form onSubmit={handleSubmitForm} noValidate className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* Title */}
@@ -475,24 +669,21 @@ export default function LandlordPortal({ onBackToExplore }) {
                   )}
                 </div>
 
-                {/* Barangay */}
+                {/* Barangay Dropdown */}
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    Barangay <span className="text-rose-500">*</span>
+                    Barangay ({DAGUPAN_BARANGAYS.length} Barangays) <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formData.barangay}
                     onChange={(e) => handleChange('barangay', e.target.value)}
                     className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
                   >
-                    <option value="Poblacion Oeste">Poblacion Oeste</option>
-                    <option value="Tapuac">Tapuac</option>
-                    <option value="Malued">Malued</option>
-                    <option value="Lucao">Lucao</option>
-                    <option value="Pantol">Pantol</option>
-                    <option value="Downtown">Downtown</option>
-                    <option value="Mayombo">Mayombo</option>
-                    <option value="Herrero-Perez">Herrero-Perez</option>
+                    {DAGUPAN_BARANGAYS.map((brgy) => (
+                      <option key={brgy} value={brgy}>
+                        {brgy}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -584,49 +775,57 @@ export default function LandlordPortal({ onBackToExplore }) {
               </div>
 
               {/* Photos Upload Zone */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 transition-colors">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1">
-                  <ImageIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  Dorm Photos (Upload up to 5 photos)
-                </label>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                  Uploaded images will display directly on the student Explore view carousel.
-                </p>
-
-                <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl p-4 text-center bg-white dark:bg-slate-800 transition cursor-pointer relative group">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageSelect}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <UploadCloud className="w-6 h-6 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mx-auto transition" />
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1">
-                    Click to select dorm photos
+              {!editingHouseId && (
+                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 transition-colors">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1">
+                    <ImageIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Dorm Photos (Upload up to 5 photos)
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
+                    Uploaded images will display directly on the student Explore view carousel.
                   </p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">JPG, PNG up to 5MB each (Max 5)</p>
-                </div>
 
-                {/* Previews */}
-                {previewUrls.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
-                    {previewUrls.map((url, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-750 group bg-slate-100 dark:bg-slate-800">
-                        <img src={url} alt={`preview-${index}`} className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-slate-900/80 hover:bg-rose-600 text-white rounded-full p-0.5 transition cursor-pointer"
-                          title="Remove image"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl p-4 text-center bg-white dark:bg-slate-800 transition cursor-pointer relative group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={compressing}
+                      onChange={handleImageSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    {compressing ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600 dark:text-emerald-400 mx-auto" />
+                    ) : (
+                      <UploadCloud className="w-6 h-6 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 mx-auto transition" />
+                    )}
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1">
+                      {compressing ? 'Optimizing & resizing images...' : 'Click to select dorm photos'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                      {compressing ? 'Compressing high-res files before upload...' : 'JPG, PNG up to 5 photos (Auto-compressed)'}
+                    </p>
                   </div>
-                )}
-              </div>
+
+                  {previewUrls.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
+                      {previewUrls.map((url, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-750 group bg-slate-100 dark:bg-slate-800">
+                          <img src={url} alt={`preview-${index}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-1 right-1 bg-slate-900/80 hover:bg-rose-600 text-white rounded-full p-0.5 transition cursor-pointer"
+                            title="Remove image"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Facebook URL */}
               <div>
@@ -658,7 +857,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                 </label>
                 <textarea
                   rows="2"
-                  placeholder="Describe proximity to UPang/UC/PSU, curfew rules, study spaces, inclusions..."
+                  placeholder="Describe proximity to universities, curfew rules, study spaces, inclusions..."
                   value={formData.description}
                   onChange={(e) => handleChange('description', e.target.value)}
                   className={`w-full border rounded-lg p-2.5 text-xs transition bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none ${
@@ -701,7 +900,7 @@ export default function LandlordPortal({ onBackToExplore }) {
                 </div>
               </div>
 
-              {/* Map Coordinate Picker */}
+              {/* Map Coordinate Picker with Auto-Centering Controller */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -733,8 +932,9 @@ export default function LandlordPortal({ onBackToExplore }) {
                 </div>
 
                 <div className="h-44 w-full rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 relative z-0">
-                  <MapContainer center={DAGUPAN_CENTER} zoom={15} className="h-full w-full">
+                  <MapContainer center={[formData.lat, formData.lng]} zoom={15} className="h-full w-full">
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <MapController center={[formData.lat, formData.lng]} />
                     <LocationPicker
                       position={[formData.lat, formData.lng]}
                       onPositionChange={(lat, lng) => setFormData((prev) => ({ ...prev, lat, lng }))}
@@ -750,24 +950,20 @@ export default function LandlordPortal({ onBackToExplore }) {
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setErrors({});
-                    setSelectedFiles([]);
-                    setPreviewUrls([]);
-                    setAutoFilledStatus('');
-                  }}
+                  onClick={resetFormState}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-lg transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || compressing}
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-semibold text-xs rounded-lg transition flex items-center gap-2 cursor-pointer shadow-xs"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {submitting ? 'Uploading & Registering...' : 'Publish Accommodation'}
+                  {submitting 
+                    ? (editingHouseId ? 'Saving Changes...' : 'Uploading & Registering...') 
+                    : (editingHouseId ? 'Save Changes' : 'Publish Accommodation')}
                 </button>
               </div>
             </form>
@@ -783,7 +979,11 @@ export default function LandlordPortal({ onBackToExplore }) {
             {!showAddForm && (
               <button
                 type="button"
-                onClick={() => setShowAddForm(true)}
+                onClick={() => {
+                  setEditingHouseId(null);
+                  setFormData(initialFormState);
+                  setShowAddForm(true);
+                }}
                 className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -802,7 +1002,7 @@ export default function LandlordPortal({ onBackToExplore }) {
               <Home className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
               <h3 className="text-sm text-slate-800 dark:text-white font-bold">No properties listed yet</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4 max-w-sm mx-auto">
-                Publish your boarding house so UPang, UC, PSU, and DCU students can discover it through the search and transit engine.
+                Publish your boarding house so students can discover it through the search and transit engine[cite: 2].
               </p>
               <button
                 type="button"
@@ -825,19 +1025,33 @@ export default function LandlordPortal({ onBackToExplore }) {
                       <h3 className="font-bold text-slate-900 dark:text-white text-xs truncate flex-1">
                         {house.title || house.name}
                       </h3>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteListing(house._id)}
-                        disabled={deletingId === house._id}
-                        className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer shrink-0"
-                        title="Delete listing"
-                      >
-                        {deletingId === house._id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
-                        ) : (
-                          <Trash2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                      
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(house)}
+                          className="text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 p-1 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition cursor-pointer"
+                          title="Edit listing details"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteListing(house._id)}
+                          disabled={deletingId === house._id}
+                          className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                          title="Delete listing"
+                        >
+                          {deletingId === house._id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">

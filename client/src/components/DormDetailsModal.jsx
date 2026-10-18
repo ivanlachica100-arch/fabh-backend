@@ -7,6 +7,16 @@ import {
   Loader2, MessageCircle, UserCheck, Trash2 
 } from 'lucide-react';
 
+const resolveImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const normalized = cleanPath.startsWith('/uploads') ? cleanPath : `/uploads${cleanPath}`;
+  return `https://fabh-backend.onrender.com${normalized}`;
+};
+
 export default function DormDetailsModal({ isOpen, onClose, house, selectedCampus, onRefresh }) {
   const { user } = useAuth();
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
@@ -17,7 +27,6 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
 
   const houseId = house?._id || house?.id;
 
-  // Fetch verified community reviews whenever this modal opens with a valid house
   useEffect(() => {
     if (!isOpen || !houseId) {
       setReviews([]);
@@ -48,12 +57,14 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
 
   if (!isOpen || !house) return null;
 
-  const images = house.images && house.images.length > 0 
+  const rawImages = house.images && house.images.length > 0 
     ? house.images 
     : [
         'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80'
       ];
+
+  const images = rawImages.map((img) => resolveImageUrl(img));
 
   const contact = house.contactChannels || {};
   const phone = contact.phoneNumber || '09171234567';
@@ -65,13 +76,11 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
   const distance = house.distanceToCampusInMeters ?? house.distance;
   const campusName = selectedCampus?.name ? selectedCampus.name.split(' ')[0] : 'Campus';
 
-  // Ownership / Admin privilege detection
   const landlordId = typeof house.landlord === 'object' ? house.landlord?._id : house.landlord;
   const isOwner = user && landlordId && user._id?.toString() === landlordId.toString();
   const isAdmin = user && user.role === 'admin';
   const canDelete = isOwner || isAdmin;
 
-  // Calculate live average star score from fetched reviews
   const averageRating = reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
     : (house.rating ? Number(house.rating).toFixed(1) : null);
@@ -90,20 +99,18 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
 
   const handleDeleteListing = async () => {
     const confirmationText = isAdmin && !isOwner
-      ? `[ADMIN MODERATION] Are you sure you want to permanently delete "${houseTitle}"? This will log an audit event and purge all associated student bookmarks.`
-      : `Are you sure you want to delete your boarding house listing "${houseTitle}"?`;
+      ? `Are you sure you want to delete "${houseTitle}" as administrator?`
+      : `Are you sure you want to delete your listing "${houseTitle}"?`;
 
     if (!window.confirm(confirmationText)) return;
 
     try {
       setIsDeleting(true);
       await api.delete(`/boarding-houses/${houseId}`);
-      alert(isAdmin && !isOwner ? 'Listing removed by administrator.' : 'Your listing has been removed.');
       if (onRefresh) onRefresh();
       onClose();
     } catch (err) {
       console.error('Delete error:', err);
-      alert(err.response?.data?.message || 'Failed to delete listing.');
     } finally {
       setIsDeleting(false);
     }
@@ -131,6 +138,9 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
           <img
             src={images[currentImageIdx]}
             alt={houseTitle}
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80';
+            }}
             className="w-full h-full object-cover"
           />
 
@@ -208,7 +218,7 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               
-              {/* Facebook / Messenger */}
+              {/* Facebook */}
               <a
                 href={fbUrl.startsWith('http') ? fbUrl : `https://${fbUrl}`}
                 target="_blank"
@@ -261,7 +271,7 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Text &rarr;</span>
               </a>
 
-              {/* Telegram (Optional) */}
+              {/* Telegram */}
               {telegram && (
                 <a
                   href={`https://t.me/${telegram.replace('@', '')}`}
@@ -282,7 +292,7 @@ export default function DormDetailsModal({ isOpen, onClose, house, selectedCampu
                 </a>
               )}
 
-              {/* WhatsApp (Optional) */}
+              {/* WhatsApp */}
               {whatsapp && (
                 <a
                   href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}

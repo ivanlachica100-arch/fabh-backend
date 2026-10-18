@@ -7,13 +7,15 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   AlertCircle, 
-  Loader2 
+  Loader2,
+  FileCheck,
+  Building
 } from 'lucide-react';
 
 export default function ApplyLandlordModal({ isOpen, onClose }) {
   const { user } = useAuth();
   const [contactNumber, setContactNumber] = useState('');
-  const [governmentIdType, setGovernmentIdType] = useState('National ID');
+  const [contactEmail, setContactEmail] = useState(user?.email || '');
   const [idFile, setIdFile] = useState(null);
   const [propertyFile, setPropertyFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -22,25 +24,56 @@ export default function ApplyLandlordModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const handleFileChange = (file, setter, fileLabel) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      setError(`${fileLabel} must be an image (JPG, PNG) or PDF document.`);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(`${fileLabel} file size exceeds 5MB limit. Please upload a smaller file.`);
+      return;
+    }
+
+    setError('');
+    setter(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    const cleanedPhone = contactNumber.replace(/[\s\-()]/g, '');
+    const phPhoneRegex = /^(09|\+639)\d{9}$/;
+
     if (!contactNumber.trim()) {
-      setError('Please provide your active contact number.');
+      setError('Please provide your active mobile number.');
+      return;
+    }
+
+    if (!phPhoneRegex.test(cleanedPhone)) {
+      setError('Enter a valid Philippine mobile number (e.g., 09171234567 or +639171234567).');
+      return;
+    }
+
+    if (!contactEmail.trim() || !contactEmail.includes('@')) {
+      setError('Please provide a valid active contact email address.');
       return;
     }
 
     if (!idFile || !propertyFile) {
-      setError('Both a valid Government ID and Property Ownership document are required.');
+      setError('Both a valid ID and a Property Permit / Ownership document are required.');
       return;
     }
 
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('contactNumber', contactNumber.trim());
-      formData.append('governmentIdType', governmentIdType);
+      formData.append('contactNumber', cleanedPhone);
+      formData.append('contactEmail', contactEmail.trim().toLowerCase());
+      formData.append('governmentIdType', 'Valid ID'); // Keeps backend Mongoose schema backward-compatible
       formData.append('idDocument', idFile);
       formData.append('ownershipDocument', propertyFile);
 
@@ -102,9 +135,18 @@ export default function ApplyLandlordModal({ isOpen, onClose }) {
                 </div>
               )}
 
+              {/* Notice Banner */}
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2">
+                <FileCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  Please upload <strong>any valid government or institutional ID</strong>, along with your <strong>boarding house permit or barangay business clearance</strong> for accreditation.
+                </span>
+              </div>
+
+              {/* Contact Number */}
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Active Contact Number
+                  Active Mobile Number <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -115,60 +157,59 @@ export default function ApplyLandlordModal({ isOpen, onClose }) {
                 />
               </div>
 
+              {/* Contact Email */}
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Government ID Type
+                  Active Contact Email <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  value={governmentIdType}
-                  onChange={(e) => setGovernmentIdType(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="National ID">PhilSys National ID</option>
-                  <option value="Driver License">Driver's License</option>
-                  <option value="Passport">Philippine Passport</option>
-                  <option value="UMID">UMID / SSS</option>
-                  <option value="Barangay ID">Barangay Certificate / ID</option>
-                </select>
+                <input
+                  type="email"
+                  placeholder="e.g. landlord@example.com"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="w-full border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
               </div>
 
               {/* ID Upload */}
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Upload Valid ID Photo
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between mb-1">
+                  <span>Valid Government or Institutional ID</span>
+                  <span className="text-rose-500">*</span>
                 </label>
                 <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl p-4 text-center bg-slate-50 dark:bg-slate-800/60 transition cursor-pointer block">
                   <input
                     type="file"
-                    accept="image/*"
-                    onChange={(e) => setIdFile(e.target.files?.[0] || null)}
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleFileChange(e.target.files?.[0] || null, setIdFile, 'Valid ID')}
                     className="hidden"
                   />
                   <UploadCloud className="w-5 h-5 text-slate-400 dark:text-slate-500 mx-auto mb-1" />
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
-                    {idFile ? idFile.name : 'Select or drag ID photo'}
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block truncate px-2">
+                    {idFile ? idFile.name : 'Upload any valid ID (PhilSys, Driver License, Passport, School ID, etc.)'}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG up to 5MB</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG, or PDF up to 5MB</span>
                 </label>
               </div>
 
-              {/* Ownership Upload */}
+              {/* Ownership Document / Permit Upload */}
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Upload Property Ownership Document / Permit
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between mb-1">
+                  <span>Boarding House Permit / Clearance / Ownership Document</span>
+                  <span className="text-rose-500">*</span>
                 </label>
                 <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl p-4 text-center bg-slate-50 dark:bg-slate-800/60 transition cursor-pointer block">
                   <input
                     type="file"
-                    accept="image/*"
-                    onChange={(e) => setPropertyFile(e.target.files?.[0] || null)}
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleFileChange(e.target.files?.[0] || null, setPropertyFile, 'Permit Document')}
                     className="hidden"
                   />
-                  <UploadCloud className="w-5 h-5 text-slate-400 dark:text-slate-500 mx-auto mb-1" />
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
-                    {propertyFile ? propertyFile.name : 'Select or drag Tax Dec, Permit, or Title'}
+                  <Building className="w-5 h-5 text-slate-400 dark:text-slate-500 mx-auto mb-1" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block truncate px-2">
+                    {propertyFile ? propertyFile.name : 'Upload Business Permit, Barangay Clearance, or Tax Declaration'}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG up to 5MB</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG, or PDF up to 5MB</span>
                 </label>
               </div>
 
